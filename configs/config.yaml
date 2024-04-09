@@ -1,0 +1,33 @@
+Gaussian:
+  model_params:
+    model_path: "./output/5927df7d-3"
+    data_path: "/data"
+    data_device: "cuda"
+    sh_degree: 3
+
+  pipeline_params:
+    convert_SHs_python: False
+    compute_cov3D_python: False
+
+  calib_params:
+    fx: 346.6
+    fy: 347.0
+    cx: 196.5
+    cy: 110.0
+    width: 393
+    height: 220
+
+Tracking:
+  initial_pose:
+    rot:
+      rows: 3
+      cols: 3
+      dt: "d"
+      data: [0.98642955, -0.12988273,  0.10043512,
+             0.15009414,  0.96130807, -0.23099469,
+             -0.06654687,  0.24293471,  0.96775732]
+    trans:
+      rows: 3
+      cols: 1
+      dt: "d"
+      data: [2.78486007, -3.672684,  0.42108723]
