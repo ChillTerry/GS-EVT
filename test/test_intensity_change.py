@@ -63,10 +63,21 @@ def save_render_image(rFrame: RenderFrame, id=None):
     torchvision.utils.save_image(render_image, os.path.join(results_path, color_image_name))
 
 
-def main(config_path):
+def test_intensity_change(config_path):
     view, gaussians, pipeline, background = init(config_path)
-    rFrame = RenderFrame(view, gaussians, pipeline, background)
-    save_render_image(rFrame)
+    rFrame1 = RenderFrame(view, gaussians, pipeline, background)
+    save_render_image(rFrame1, id=1)
+
+    view.cam_trans_delta.data.add_(0.05)
+    # view.cam_rot_delta.data.add_(0.005)
+    update_pose(view)
+    rFrame2 = RenderFrame(view, gaussians, pipeline, background)
+    save_render_image(rFrame2, id=2)
+
+    intensity_change = torch.abs(rFrame1.color_frame - rFrame2.color_frame)
+    import torchvision
+    results_path = "./results"
+    torchvision.utils.save_image(intensity_change, os.path.join(results_path, "intensity_change.png"))
 
 
 if __name__ == "__main__":
@@ -74,4 +85,4 @@ if __name__ == "__main__":
     parser.add_argument("--config_path", "-c", type=str, default="./configs/config.yaml")
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.config_path)
+    test_intensity_change(args.config_path)
