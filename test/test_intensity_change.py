@@ -1,6 +1,7 @@
 import os
 import sys
-BASE_DIR = os.getcwd()
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 GS_PATH = os.path.join(BASE_DIR, "gaussian_splatting")
 sys.path.append(GS_PATH)
 import yaml
@@ -48,7 +49,7 @@ def save_render_image(rFrame: RenderFrame, id=None):
         depth_image_name = f"depth.png"
         color_image_name = f"color.png"
 
-    results_path = "./results"
+    results_path = os.path.join(BASE_DIR, "results")
     os.makedirs(results_path, exist_ok=True)
     render_image = rFrame.color_frame
     render_depth = rFrame.depth_frame
@@ -68,15 +69,15 @@ def test_intensity_change(config_path):
     rFrame1 = RenderFrame(view, gaussians, pipeline, background)
     save_render_image(rFrame1, id=1)
 
-    view.cam_trans_delta.data.add_(0.05)
+    view.cam_trans_delta.data.add_(0.2)
     # view.cam_rot_delta.data.add_(0.005)
     update_pose(view)
     rFrame2 = RenderFrame(view, gaussians, pipeline, background)
     save_render_image(rFrame2, id=2)
 
-    intensity_change = torch.abs(rFrame1.color_frame - rFrame2.color_frame)
+    intensity_change = torch.abs(rFrame1.intensity_frame - rFrame2.intensity_frame)
     import torchvision
-    results_path = "./results"
+    results_path = os.path.join(BASE_DIR, "results")
     torchvision.utils.save_image(intensity_change, os.path.join(results_path, "intensity_change.png"))
 
 
