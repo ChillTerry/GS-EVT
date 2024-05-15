@@ -1,7 +1,6 @@
 Gaussian:
   model_params:
     model_path: "./output/5927df7d-3"
-    data_path: "/data"
     data_device: "cuda"
     sh_degree: 3
 
@@ -16,6 +15,12 @@ Gaussian:
     cy: 110.0
     width: 393
     height: 220
+
+Event:
+  data_path: "./data/calibration/events.txt"
+  max_events_per_frame: 100000
+  width: 346
+  height: 260
 
 Tracking:
   initial_pose:

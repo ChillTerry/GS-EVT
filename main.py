@@ -10,7 +10,6 @@ from argparse import ArgumentParser
 
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
-from utils.pose import update_pose
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 from gaussian_splatting.utils.system_utils import searchForMaxIteration
 
