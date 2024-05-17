@@ -52,6 +52,7 @@ class Camera(nn.Module):
         self.cam_trans_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
 
         # Calculate projection matrix for the camera
+        # TODO: MonoGS uses getProjectionMatrix2, does it really make obvious difference?
         # self.projection_matrix = getProjectionMatrix2(znear=0.01, zfar=100.0, fx=346.6, fy=347.0, cx=196.5, cy=110.0,
         #                                               W=self.image_width, H=self.image_height).transpose(0, 1).to(device=self.device)
         self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1).to(device=self.device)
@@ -78,10 +79,12 @@ class Camera(nn.Module):
 
     @staticmethod
     def init_from_yaml(config):
+        img_width = config["Event"]["img_width"]
+        img_height = config["Event"]["img_height"]
         calib_params = munchify(config["Gaussian"]["calib_params"])
         initial_R = np.array(config["Tracking"]["initial_pose"]["rot"]["data"]).reshape(3, 3)
         initial_t = np.array(config["Tracking"]["initial_pose"]["trans"]["data"]).reshape(3,)
-        fovx = focal2fov(calib_params.fx, calib_params.width)
-        fovy = focal2fov(calib_params.fy, calib_params.height)
+        fovx = focal2fov(calib_params.fx, img_height)
+        fovy = focal2fov(calib_params.fy, img_height)
         return Camera(R=initial_R, t=initial_t, fovx=fovx, fovy=fovy,
-                      image_width=calib_params.width, image_height=calib_params.height)
+                      image_width=img_width, image_height=img_height)

@@ -61,8 +61,8 @@ def test_event_camera(config_path):
         config = yaml.safe_load(yml)
     data_path = config["Event"]["data_path"]
     max_events_per_frame = config["Event"]["max_events_per_frame"]
-    img_width = config["Event"]["width"]
-    img_height = config["Event"]["height"]
+    img_width = config["Event"]["img_width"]
+    img_height = config["Event"]["img_height"]
 
     results_path = os.path.join(BASE_DIR, "results")
     os.makedirs(results_path, exist_ok=True)
