@@ -46,11 +46,13 @@ def render_video(save_path, data_path, img_width, img_height, max_events_per_fra
 
 '''Render the first frame to see the quality'''
 def render_frame(data_path, img_width, img_height, max_events_per_frame):
-    with open(data_path, 'r', encoding='utf-8') as event_file:
-        eFrame = extract_single_event_frame(event_file, img_width, img_height, max_events_per_frame)
+    events = np.loadtxt(data_path, dtype=np.int64)
+
+    event_slice = events[:max_events_per_frame]
+    eFrame = extract_single_event_frame(event_slice, img_width, img_height, max_events_per_frame)
 
     cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Image', eFrame.img_width, eFrame.img_height)
+    cv2.resizeWindow('Image', img_width, img_height)
     cv2.imshow('Image', eFrame.event_frame.transpose())
     cv2.waitKey(0)
     cv2.destroyAllWindows()
