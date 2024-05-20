@@ -13,14 +13,12 @@ Gaussian:
     fy: 347.0
     cx: 196.5
     cy: 110.0
-    width: 393
-    height: 220
 
 Event:
   data_path: "./data/calibration/events.txt"
   max_events_per_frame: 100000
-  width: 346
-  height: 260
+  img_width: 346
+  img_height: 260
 
 Tracking:
   initial_pose:

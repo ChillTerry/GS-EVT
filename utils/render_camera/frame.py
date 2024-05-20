@@ -10,13 +10,13 @@ class RenderFrame:
     Frame that rendered by gaussian splatting
     """
 
-    def __init__(self, view: Camera, gaussians: GaussianModel, pipeline, background):
-        self.view = view
+    def __init__(self, viewpoint: Camera, gaussians: GaussianModel, pipeline, background):
+        self.viewpoint = viewpoint
         self.gaussians = gaussians
         self.pipeline = pipeline
         self.background = background
 
-        rendering = render(view, gaussians, pipeline, background)
+        rendering = render(viewpoint, gaussians, pipeline, background)
         self.color_frame = rendering["render"]
         self.depth_frame = rendering["depth"]
 
@@ -39,3 +39,6 @@ class RenderFrame:
         sobel_x = F.conv2d(self.intensity_frame, sobel_x_kernel, padding=1)
         sobel_y = F.conv2d(self.intensity_frame, sobel_y_kernel, padding=1)
         self.grad_frame = torch.sqrt(sobel_x**2 + sobel_y**2)
+
+    def get_intensity_change_frame(self):
+        pass

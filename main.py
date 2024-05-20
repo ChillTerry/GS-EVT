@@ -8,22 +8,26 @@ import torch
 from munch import munchify
 from argparse import ArgumentParser
 
+from utils.common import load_events_from_txt
+from utils.tracker import Tracker
 from utils.render_camera.camera import Camera
-from utils.render_camera.frame import RenderFrame
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 from gaussian_splatting.utils.system_utils import searchForMaxIteration
 
 
-def init(config_path):
-    # Setup parameters
+def main(config_path):
+    # Load config
     with open(config_path, "r") as yml:
         config = yaml.safe_load(yml)
+
+    # Setup parameters
     model_params = munchify(config["Gaussian"]["model_params"])
     pipeline = munchify(config["Gaussian"]["pipeline_params"])
     background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
+    event_data_path = config["Event"]["data_path"]
 
-    # Setup camera viewpoint
-    view = Camera.init_from_yaml(config)
+    # Setup camera viewpointpoint
+    viewpoint = Camera.init_from_yaml(config)
 
     # Setup gaussian model
     gaussians = GaussianModel(model_params.sh_degree)
@@ -34,39 +38,14 @@ def init(config_path):
                                     "iteration_" + str(loaded_iter),
                                     "point_cloud.ply"))
 
-    return view, gaussians, pipeline, background
+    # Setup event data
+    event_array = load_events_from_txt(event_data_path, 100000)
 
+    # Init tracker
+    tracker = Tracker(config, event_array, viewpoint, gaussians, pipeline, background)
 
-def save_render_image(rFrame: RenderFrame, id=None):
-    import torchvision
-    from torchvision.transforms.functional import to_pil_image
-    if id is not None:
-        depth_image_name = f"depth_{id}.png"
-        color_image_name = f"color_{id}.png"
-    else:
-        depth_image_name = f"depth.png"
-        color_image_name = f"color.png"
-
-    results_path = "./results"
-    os.makedirs(results_path, exist_ok=True)
-    render_image = rFrame.color_frame
-    render_depth = rFrame.depth_frame
-    # Save images
-    min_val = torch.min(render_depth)
-    max_val = torch.max(render_depth)
-    normalized_depth_tensor = (render_depth - min_val) / (max_val - min_val)
-    normalized_depth_tensor = torch.clamp(normalized_depth_tensor, 0, 1)
-    depth_image = to_pil_image(normalized_depth_tensor)
-    depth_image.save(os.path.join(results_path, depth_image_name))
-
-    torchvision.utils.save_image(render_image, os.path.join(results_path, color_image_name))
-
-
-def main(config_path):
-    view, gaussians, pipeline, background = init(config_path)
-    rFrame = RenderFrame(view, gaussians, pipeline, background)
-    save_render_image(rFrame)
-
+    # Go tracking
+    tracker.tracking()
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="configuration parameters")
