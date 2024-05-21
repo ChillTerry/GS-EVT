@@ -1,3 +1,5 @@
+import cv2
+import torch
 import numpy as np
 from typing import List
 
@@ -32,9 +34,12 @@ class EventArray:
 class EventFrame:
     """An EventFrame module represented in the rendering procedure."""
 
-    def __init__(self, img_width, img_height, event_array: EventArray):
+    def __init__(self, img_width, img_height, intrinsic, distortion_factors, event_array: EventArray, device='cuda'):
+        self.device = device
         self.img_width = img_width
         self.img_height = img_height
+        self.intrinsic = intrinsic
+        self.distortion_factors = distortion_factors
         self.event_frame = self.integrate_events(event_array)
 
     def integrate_events(self, event_array: EventArray):
@@ -51,5 +56,8 @@ class EventFrame:
                 event_frame[event.x, event.y] = min(event_frame[event.x, event.y] + EVENT_BRIGHTNESS, 255)
             else:
                 event_frame[event.x, event.y] = max(event_frame[event.x, event.y] - EVENT_BRIGHTNESS, 0)
+
+        event_frame = cv2.undistort(event_frame.transpose(), self.intrinsic, self.distortion_factors)
+        event_frame = torch.tensor(np.expand_dims(event_frame, axis=-1), device=self.device)
 
         return event_frame

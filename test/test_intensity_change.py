@@ -13,7 +13,6 @@ from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
 from utils.pose import update_pose
 from gaussian_splatting.scene.gaussian_model import GaussianModel
-from gaussian_splatting.utils.system_utils import searchForMaxIteration
 
 
 def init(config_path):
@@ -29,12 +28,7 @@ def init(config_path):
 
     # Setup gaussian model
     gaussians = GaussianModel(model_params.sh_degree)
-    pc_path = os.path.join(model_params.model_path, "point_cloud")
-    loaded_iter = searchForMaxIteration(pc_path)
-    gaussians.load_ply(os.path.join(model_params.model_path,
-                                    "point_cloud",
-                                    "iteration_" + str(loaded_iter),
-                                    "point_cloud.ply"))
+    gaussians.load_ply(model_params.model_path)
 
     return view, gaussians, pipeline, background
 
@@ -69,8 +63,8 @@ def test_intensity_change(config_path):
     rFrame1 = RenderFrame(view, gaussians, pipeline, background)
     save_render_image(rFrame1, id=1)
 
-    view.cam_trans_delta.data.add_(0.2)
-    # view.cam_rot_delta.data.add_(0.005)
+    view.cam_trans_delta.data.add_(0.1)
+    view.cam_rot_delta.data.add_(0.01)
     update_pose(view)
     rFrame2 = RenderFrame(view, gaussians, pipeline, background)
     save_render_image(rFrame2, id=2)

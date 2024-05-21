@@ -1,6 +1,6 @@
 Gaussian:
   model_params:
-    model_path: "./output/5927df7d-3"
+    model_path: "./data/table/point_cloud.ply"
     data_device: "cuda"
     sh_degree: 3
 
@@ -9,16 +9,24 @@ Gaussian:
     compute_cov3D_python: False
 
   calib_params:
-    fx: 346.6
-    fy: 347.0
-    cx: 196.5
-    cy: 110.0
+    fx: 293.14609006
+    fy: 295.78015996
+    cx: 204.14612938
+    cy: 142.92767878
 
 Event:
-  data_path: "./data/calibration/events.txt"
+  data_path: "./data/table/events.txt"
   max_events_per_frame: 100000
   img_width: 346
   img_height: 260
+  intrinsic:
+    rows: 3
+    cols: 3
+    dt: "d"
+    data: [ 303.15953263, 0, 181.92577415,
+            0, 303.14835503, 132.47099425,
+            0, 0, 1]
+  distortion_factors: [-0.40628044, 0.29331882, -0.00044509, 0.00133112, -0.15525584]
 
 Tracking:
   initial_pose:
@@ -26,12 +34,12 @@ Tracking:
       rows: 3
       cols: 3
       dt: "d"
-      data: [0.98642955,  0.15009414, -0.06654687,
-             -0.12988273,  0.96130807,  0.24293471,
-             0.10043512, -0.23099469,  0.96775732]
+      data: [ 0.87325197,  0.3966501,  -0.28301891,
+             -0.33906191,  0.91178666,  0.23169401,
+              0.34995432, -0.10636632,  0.93070843]
 
     trans:
       rows: 3
       cols: 1
       dt: "d"
-      data: [2.78486007, -3.672684,  0.42108723]
+      data: [5.53871875, -2.57876782,  0.42174859]

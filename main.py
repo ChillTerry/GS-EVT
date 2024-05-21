@@ -12,7 +12,6 @@ from utils.common import load_events_from_txt
 from utils.tracker import Tracker
 from utils.render_camera.camera import Camera
 from gaussian_splatting.scene.gaussian_model import GaussianModel
-from gaussian_splatting.utils.system_utils import searchForMaxIteration
 
 
 def main(config_path):
@@ -25,24 +24,20 @@ def main(config_path):
     pipeline = munchify(config["Gaussian"]["pipeline_params"])
     background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
     event_data_path = config["Event"]["data_path"]
+    max_events_per_frame = config["Event"]["max_events_per_frame"]
 
     # Setup camera viewpointpoint
     viewpoint = Camera.init_from_yaml(config)
 
     # Setup gaussian model
     gaussians = GaussianModel(model_params.sh_degree)
-    pc_path = os.path.join(model_params.model_path, "point_cloud")
-    loaded_iter = searchForMaxIteration(pc_path)
-    gaussians.load_ply(os.path.join(model_params.model_path,
-                                    "point_cloud",
-                                    "iteration_" + str(loaded_iter),
-                                    "point_cloud.ply"))
+    gaussians.load_ply(model_params.model_path)
 
     # Setup event data
-    event_array = load_events_from_txt(event_data_path, 100000)
+    event_arrays = load_events_from_txt(event_data_path, max_events_per_frame)
 
     # Init tracker
-    tracker = Tracker(config, event_array, viewpoint, gaussians, pipeline, background)
+    tracker = Tracker(config, event_arrays, viewpoint, gaussians, pipeline, background)
 
     # Go tracking
     tracker.tracking()

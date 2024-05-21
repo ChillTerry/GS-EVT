@@ -4,14 +4,14 @@ from typing import List
 from utils.common import tracking_loss
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
-from utils.event_camera.event import EventFrame, EventArray, Event
+from utils.event_camera.event import EventFrame, EventArray
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 
 class Tracker:
     def __init__(self,
                  config,
-                 event_array: List[Event],
+                 event_array: List[EventArray],
                  viewpoint: Camera,
                  gaussians: GaussianModel,
                  pipeline,

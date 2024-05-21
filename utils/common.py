@@ -5,13 +5,16 @@ from tqdm import tqdm
 from utils.render_camera.frame import RenderFrame
 from utils.event_camera.event import Event, EventArray
 
-def load_events_from_txt(data_path, max_events_per_frame):
+def load_events_from_txt(data_path, max_events_per_frame, num_arrays=None):
     event_arrays = []
     total_events = sum(1 for _ in open(data_path))
     with open(data_path, 'r', encoding='utf-8') as event_file:
-        for i in tqdm(range(total_events // max_events_per_frame), desc="load events"):
+        num_frames = total_events // max_events_per_frame
+        if num_arrays is not None:
+            num_frames = min(num_frames, num_arrays)
+        for i in tqdm(range(num_frames), desc="load events"):
             event_array = EventArray()
-            for i in range(max_events_per_frame):
+            for j in range(max_events_per_frame):
                 line = next(event_file)
                 line_data = line.strip().split(' ')
                 line_data = [int(item) for item in line_data]
