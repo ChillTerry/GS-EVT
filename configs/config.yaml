@@ -16,7 +16,7 @@ Gaussian:
 
 Event:
   data_path: "./data/table/events.txt"
-  max_events_per_frame: 100000
+  max_events_per_frame: 40000
   img_width: 346
   img_height: 260
   intrinsic:

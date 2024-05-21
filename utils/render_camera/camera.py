@@ -84,7 +84,7 @@ class Camera(nn.Module):
         calib_params = munchify(config["Gaussian"]["calib_params"])
         initial_R = np.array(config["Tracking"]["initial_pose"]["rot"]["data"]).reshape(3, 3)
         initial_t = np.array(config["Tracking"]["initial_pose"]["trans"]["data"]).reshape(3,)
-        fovx = focal2fov(calib_params.fx, img_height)
+        fovx = focal2fov(calib_params.fx, img_width)
         fovy = focal2fov(calib_params.fy, img_height)
         return Camera(R=initial_R, t=initial_t, fovx=fovx, fovy=fovy,
                       image_width=img_width, image_height=img_height)
