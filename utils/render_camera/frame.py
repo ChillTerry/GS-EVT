@@ -22,7 +22,7 @@ class RenderFrame:
 
         weights = torch.tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
         weights = weights.to(self.color_frame.device)
-        self.intensity_frame = (self.color_frame * weights).sum(dim=1, keepdim=True)
+        self.intensity_frame = (self.color_frame * weights).sum(dim=1)
 
     def get_grad_frame(self):
         sobel_x_kernel = torch.tensor([[-1., 0., 1.],

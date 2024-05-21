@@ -26,7 +26,7 @@ def main(config_path):
     event_data_path = config["Event"]["data_path"]
     max_events_per_frame = config["Event"]["max_events_per_frame"]
 
-    # Setup camera viewpointpoint
+    # Setup camera (viewpoint)
     viewpoint = Camera.init_from_yaml(config)
 
     # Setup gaussian model

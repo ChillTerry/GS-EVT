@@ -1,9 +1,16 @@
 import os
+import sys
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+import yaml
 import torch
 from tqdm import tqdm
+from munch import munchify
 
+from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
 from utils.event_camera.event import Event, EventArray
+from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 def load_events_from_txt(data_path, max_events_per_frame, num_arrays=None):
     event_arrays = []
@@ -24,6 +31,21 @@ def load_events_from_txt(data_path, max_events_per_frame, num_arrays=None):
     return event_arrays
 
 
+def init_gs(config):
+    model_params = munchify(config["Gaussian"]["model_params"])
+    pipeline = munchify(config["Gaussian"]["pipeline_params"])
+    background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
+
+    # Setup camera (viewpoint)
+    view = Camera.init_from_yaml(config)
+
+    # Setup gaussian model
+    gaussians = GaussianModel(model_params.sh_degree)
+    gaussians.load_ply(model_params.model_path)
+
+    return view, gaussians, pipeline, background
+
+
 def save_render_image(rFrame: RenderFrame, id=None):
     import torchvision
     from torchvision.transforms.functional import to_pil_image
@@ -34,7 +56,7 @@ def save_render_image(rFrame: RenderFrame, id=None):
         depth_image_name = f"depth.png"
         color_image_name = f"color.png"
 
-    results_path = "./results"
+    results_path = os.path.join(BASE_DIR, "results")
     os.makedirs(results_path, exist_ok=True)
     render_image = rFrame.color_frame
     render_depth = rFrame.depth_frame
@@ -49,5 +71,6 @@ def save_render_image(rFrame: RenderFrame, id=None):
     torchvision.utils.save_image(render_image, os.path.join(results_path, color_image_name))
 
 
-def tracking_loss(event_frame, render_frame):
-    return torch.abs((render_frame - event_frame)).mean()
+
+def tracking_loss(delta_Ir, delta_Ie):
+    return torch.abs((delta_Ir - delta_Ie)).mean()

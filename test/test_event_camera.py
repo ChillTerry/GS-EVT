@@ -39,8 +39,7 @@ def render_video(save_dir, data_path, img_width, img_height, intrinsic, distorti
 def render_frame(save_dir, data_path, img_width, img_height, intrinsic, distortion_factors, max_events_per_frame):
     event_arrays = load_events_from_txt(data_path, max_events_per_frame, num_arrays=1)
     eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[0])
-
-    cv2.imwrite(os.path.join(save_dir, 'event_frame.png'), eFrame.event_frame)
+    cv2.imwrite(os.path.join(save_dir, 'event_frame.png'), eFrame.event_frame.detach().cpu().numpy().transpose(1, 2, 0))
 
 
 def test_event_camera(config_path):

@@ -58,6 +58,6 @@ class EventFrame:
                 event_frame[event.x, event.y] = max(event_frame[event.x, event.y] - EVENT_BRIGHTNESS, 0)
 
         event_frame = cv2.undistort(event_frame.transpose(), self.intrinsic, self.distortion_factors)
-        event_frame = torch.tensor(np.expand_dims(event_frame, axis=-1), device=self.device)
+        event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
 
         return event_frame

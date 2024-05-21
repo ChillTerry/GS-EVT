@@ -32,8 +32,8 @@ class Tracker:
                            "name": "rot_{}".format(self.viewpoint.uid)})
 
         opt_params.append({"params": [self.viewpoint.cam_trans_delta],
-                "lr": self.config["Training"]["lr"]["cam_trans_delta"],
-                "name": "trans_{}".format(self.viewpoint.uid)})
+                          "lr": self.config["Training"]["lr"]["cam_trans_delta"],
+                          "name": "trans_{}".format(self.viewpoint.uid)})
 
         optimizer = torch.optim.Adam(opt_params)
 
