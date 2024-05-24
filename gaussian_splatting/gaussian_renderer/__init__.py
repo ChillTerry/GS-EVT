@@ -151,3 +151,137 @@ def render(
         "opacity": opacity,
         "n_touched": n_touched,
     }
+
+
+def render2(
+    last_viewpoint_camera,
+    curr_viewpoint_camera,
+    next_viewpoint_camera,
+    pc: GaussianModel,
+    bg_color: torch.Tensor,
+    scaling_modifier=1.0,
+    override_color=None,
+    mask=None,
+):
+    """
+    Render the scene.
+
+    Background tensor (bg_color) must be on GPU!
+    """
+
+    # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
+    if pc.get_xyz.shape[0] == 0:
+        return None
+
+    screenspace_points = (
+        torch.zeros_like(
+            pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda"
+        )
+        + 0
+    )
+    try:
+        screenspace_points.retain_grad()
+    except Exception:
+        pass
+
+    # Set up rasterization configuration
+    last_rasterizer = build_rasterizer(last_viewpoint_camera, pc, bg_color, scaling_modifier)
+    next_rasterizer = build_rasterizer(next_viewpoint_camera, pc, bg_color, scaling_modifier)
+
+    means3D = pc.get_xyz
+    means2D = screenspace_points
+    opacity = pc.get_opacity
+
+    # Since the 3D gaussian splatting map has been already built up, we directly use the precomputed 3d covariance.
+    scales = None
+    rotations = None
+    cov3D_precomp = None
+
+    # check if the covariance is isotropic
+    if pc.get_scaling.shape[-1] == 1:
+        scales = pc.get_scaling.repeat(1, 3)
+    else:
+        scales = pc.get_scaling
+    rotations = pc.get_rotation
+
+    # Since the 3D gaussian splatting map has been already built up, we directly use the precomputed colors.
+    shs = None
+    colors_precomp = None
+    if colors_precomp is None:
+        shs = pc.get_features
+    else:
+        colors_precomp = override_color
+
+    theta = curr_viewpoint_camera.cam_rot_delta
+    rho = curr_viewpoint_camera.cam_trans_delta
+    last_render_pkg = run_rasterizer(last_rasterizer, mask, means3D, means2D, shs, colors_precomp,
+                                     opacity, scales, rotations, cov3D_precomp, theta, rho)
+    next_render_pkg = run_rasterizer(next_rasterizer, mask, means3D, means2D, shs, colors_precomp,
+                                     opacity, scales, rotations, cov3D_precomp, theta, rho)
+
+    return last_render_pkg, next_render_pkg
+
+
+def build_rasterizer(viewpoint_camera, pc, bg_color, scaling_modifier):
+    # Set up rasterization configuration
+    tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
+    tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
+
+    raster_settings = GaussianRasterizationSettings(
+        image_height=int(viewpoint_camera.image_height),
+        image_width=int(viewpoint_camera.image_width),
+        tanfovx=tanfovx,
+        tanfovy=tanfovy,
+        bg=bg_color,
+        scale_modifier=scaling_modifier,
+        viewmatrix=viewpoint_camera.world_view_transform,
+        projmatrix=viewpoint_camera.full_proj_transform,
+        projmatrix_raw=viewpoint_camera.projection_matrix,
+        sh_degree=pc.active_sh_degree,
+        campos=viewpoint_camera.camera_center,
+        prefiltered=False,
+        debug=False,
+    )
+    rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+    return rasterizer
+
+
+def run_rasterizer(rasterizer, mask, means3D, means2D, shs, colors_precomp,
+                   opacity, scales, rotations, cov3D_precomp, theta, rho):
+    # Rasterize visible Gaussians to image, obtain their radii (on screen).
+    n_touched = None
+    if mask is not None:
+        rendered_image, radii, depth, opacity = rasterizer(
+            means3D=means3D[mask],
+            means2D=means2D[mask],
+            shs=shs[mask],
+            colors_precomp=colors_precomp[mask] if colors_precomp is not None else None,
+            opacities=opacity[mask],
+            scales=scales[mask],
+            rotations=rotations[mask],
+            cov3D_precomp=cov3D_precomp[mask] if cov3D_precomp is not None else None,
+            theta=theta,
+            rho=rho,
+        )
+    else:
+        rendered_image, radii, depth, opacity, n_touched = rasterizer(
+            means3D=means3D,
+            means2D=means2D,
+            shs=shs,
+            colors_precomp=colors_precomp,
+            opacities=opacity,
+            scales=scales,
+            rotations=rotations,
+            cov3D_precomp=cov3D_precomp,
+            theta=theta,
+            rho=rho,
+        )
+    # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
+    # They will be excluded from value updates used in the splitting criteria.
+    return {
+        "render": rendered_image,
+        "radii": radii,
+        "depth": depth,
+        "opacity": opacity,
+        "n_touched": n_touched,
+    }

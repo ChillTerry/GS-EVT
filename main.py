@@ -8,9 +8,9 @@ import torch
 from munch import munchify
 from argparse import ArgumentParser
 
-from utils.common import load_events_from_txt
 from utils.tracker import Tracker
 from utils.render_camera.camera import Camera
+from utils.event_camera.event import load_events_from_txt
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 

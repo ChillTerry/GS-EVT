@@ -10,7 +10,7 @@ from typing import List
 from argparse import ArgumentParser
 
 from utils.event_camera.event import EventFrame
-from utils.common import load_events_from_txt
+from utils.event_camera.event import load_events_from_txt
 
 
 """Render the whole sequence into an mp4 video"""
@@ -18,28 +18,24 @@ def render_video(save_dir, data_path, img_width, img_height, intrinsic, distorti
     eFrames:List[EventFrame] = []
     event_arrays = load_events_from_txt(data_path, max_events_per_frame)
 
-    for i in tqdm(range(len(event_arrays)), desc="extracting event frames"):
-        eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[i])
-        eFrames.append(eFrame)
-
-    print("saving to mp4 video...")
     fps = 30
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video_writer = cv2.VideoWriter(os.path.join(save_dir, 'event_video.mp4'),
                                    fourcc, fps, (img_width, img_height))
 
-    for eFrame in eFrames:
-        frame = cv2.cvtColor(eFrame.event_frame, cv2.COLOR_RGB2BGR)
+    for i in tqdm(range(len(event_arrays)), desc="extracting event frames"):
+        eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[i])
+        frame = cv2.cvtColor(eFrame.delta_Ie, cv2.COLOR_RGB2BGR)
         video_writer.write(frame)
+
     video_writer.release()
-    print("done!")
 
 
 '''Render the first frame to see the quality'''
 def render_frame(save_dir, data_path, img_width, img_height, intrinsic, distortion_factors, max_events_per_frame):
     event_arrays = load_events_from_txt(data_path, max_events_per_frame, num_arrays=1)
     eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[0])
-    cv2.imwrite(os.path.join(save_dir, 'event_frame.png'), eFrame.event_frame.detach().cpu().numpy().transpose(1, 2, 0))
+    cv2.imwrite(os.path.join(save_dir, 'event_frame.png'), eFrame.delta_Ie.detach().cpu().numpy().transpose(1, 2, 0))
 
 
 def test_event_camera(config_path):

@@ -1,7 +1,8 @@
 Gaussian:
   model_params:
     model_path: "./data/table/point_cloud.ply"
-    data_device: "cuda"
+    background: [0, 0, 0]
+    device: "cuda"
     sh_degree: 3
 
   pipeline_params:
@@ -37,9 +38,16 @@ Tracking:
       data: [ 0.87325197,  0.3966501,  -0.28301891,
              -0.33906191,  0.91178666,  0.23169401,
               0.34995432, -0.10636632,  0.93070843]
-
     trans:
       rows: 3
       cols: 1
       dt: "d"
       data: [5.53871875, -2.57876782,  0.42174859]
+
+  initial_vel:
+    linear_vel: [0.03081081, 0.01230897, 0.01398576]
+    angular_vel: [0.00117929, 0.00191401, 0.00319194]
+
+Optimizer:
+  cam_rot_delta: 0.003
+  cam_trans_delta: 0.001

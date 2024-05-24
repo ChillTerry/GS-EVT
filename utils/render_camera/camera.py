@@ -1,8 +1,8 @@
-import numpy as np
 import torch
 from torch import nn
 from munch import munchify
 
+from utils.pose import update_pose
 from gaussian_splatting.utils.graphics_utils import getWorld2View2, getProjectionMatrix, focal2fov
 
 
@@ -11,7 +11,16 @@ class Camera(nn.Module):
     A Camera module represented in the gaussian splatting rendering procedure.
     """
 
-    def __init__(self, R, t, fovx, fovy, image_width, image_height, uid=-1, device="cuda"):
+    def __init__(self,
+                 R,
+                 t,
+                 linear_vel,
+                 angular_vel,
+                 fovx,
+                 fovy,
+                 image_width,
+                 image_height,
+                 device="cuda"):
         """
         Initializes a new instance of the Camera module.
 
@@ -37,9 +46,10 @@ class Camera(nn.Module):
             self.device = torch.device("cuda")
 
         # Camera parameters and attributes
-        self.uid = uid
-        self.R = torch.tensor(R, device=device)
-        self.T = torch.tensor(t, device=device)
+        self.R = R.to(device)
+        self.T = t.to(device)
+        self.linear_vel = linear_vel
+        self.angular_vel = angular_vel
         self.FoVx = fovx
         self.FoVy = fovy
         self.image_width = image_width
@@ -51,11 +61,14 @@ class Camera(nn.Module):
         self.cam_rot_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
         self.cam_trans_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
 
+    @property
+    def projection_matrix(self):
         # Calculate projection matrix for the camera
         # TODO: MonoGS uses getProjectionMatrix2, does it really make obvious difference?
-        # self.projection_matrix = getProjectionMatrix2(znear=0.01, zfar=100.0, fx=346.6, fy=347.0, cx=196.5, cy=110.0,
-        #                                               W=self.image_width, H=self.image_height).transpose(0, 1).to(device=self.device)
-        self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1).to(device=self.device)
+        # return getProjectionMatrix2(znear=0.01, zfar=100.0, fx=346.6, fy=347.0, cx=196.5, cy=110.0,
+        #                             W=self.image_width, H=self.image_height).transpose(0, 1).to(device=self.device)
+        return getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx,
+                                   fovY=self.FoVy).transpose(0,1).to(device=self.device)
 
     @property
     def world_view_transform(self):
@@ -81,10 +94,14 @@ class Camera(nn.Module):
     def init_from_yaml(config):
         img_width = config["Event"]["img_width"]
         img_height = config["Event"]["img_height"]
+        device = config["Gaussian"]["model_params"]["device"]
         calib_params = munchify(config["Gaussian"]["calib_params"])
-        initial_R = np.array(config["Tracking"]["initial_pose"]["rot"]["data"]).reshape(3, 3)
-        initial_t = np.array(config["Tracking"]["initial_pose"]["trans"]["data"]).reshape(3,)
+        R = torch.tensor(config["Tracking"]["initial_pose"]["rot"]["data"]).reshape(3, 3)
+        t = torch.tensor(config["Tracking"]["initial_pose"]["trans"]["data"]).reshape(3,)
+        linear_vel = torch.tensor(config["Tracking"]["initial_vel"]["linear_vel"], device=device, dtype=torch.float32)
+        angular_vel = torch.tensor(config["Tracking"]["initial_vel"]["angular_vel"], device=device, dtype=torch.float32)
         fovx = focal2fov(calib_params.fx, img_width)
         fovy = focal2fov(calib_params.fy, img_height)
-        return Camera(R=initial_R, t=initial_t, fovx=fovx, fovy=fovy,
-                      image_width=img_width, image_height=img_height)
+        viewpoint = Camera(R, t, linear_vel, angular_vel, fovx, fovy, img_width, img_height, device)
+        update_pose(viewpoint)
+        return viewpoint

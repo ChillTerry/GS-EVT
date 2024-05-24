@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from utils.render_camera.camera import Camera
 
 
 def rt2mat(R, T):
@@ -74,7 +73,7 @@ def SE3_exp(deltaT):
     return T
 
 
-def update_pose(camera: Camera, converged_threshold=1e-4):
+def update_pose(camera, converged_threshold=1e-4):
     deltaT = torch.cat([camera.cam_trans_delta, camera.cam_rot_delta], axis=0)
 
     T_w2c = torch.eye(4, device=deltaT.device)

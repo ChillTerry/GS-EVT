@@ -1,11 +1,14 @@
 import torch
 from typing import List
 
-from utils.common import tracking_loss
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
 from utils.event_camera.event import EventFrame, EventArray
 from gaussian_splatting.scene.gaussian_model import GaussianModel
+
+
+def tracking_loss(delta_Ir, delta_Ie):
+    return torch.abs((delta_Ir - delta_Ie)).mean()
 
 
 class Tracker:
@@ -41,5 +44,5 @@ class Tracker:
         while True:
             eFrame = EventFrame(self.img_width, self.img_height, self.event_array[frame_idx])
             rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
-            loss = tracking_loss(eFrame.event_frame, rFrame.intensity_frame)
+            loss = tracking_loss(eFrame.delta_Ie, rFrame.intensity_frame)
             loss.backward()
