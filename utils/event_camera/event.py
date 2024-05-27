@@ -72,21 +72,25 @@ class EventFrame:
         event_frame = np.zeros((self.img_width, self.img_height), dtype=np.uint8)
         for i in range(event_array.begin(), event_array.end()):
             event = event_array.events[i]
+            event_frame[event.x, event.y] = event_frame[event.x, event.y] + EVENT_BRIGHTNESS
 
-            if event.x >= self.img_width or event.y >= self.img_height:
-                print("WARNING: Ignoring out of bounds event at {}, {}".format(event.x, event.y))
-                continue
+            # if event.x >= self.img_width or event.y >= self.img_height:
+            #     print("WARNING: Ignoring out of bounds event at {}, {}".format(event.x, event.y))
+            #     continue
 
-            if event.polarity:
-                event_frame[event.x, event.y] = min(event_frame[event.x, event.y] + EVENT_BRIGHTNESS, 255)
-            else:
-                event_frame[event.x, event.y] = max(event_frame[event.x, event.y] - EVENT_BRIGHTNESS, 0)
+            # if event.polarity:
+            #     event_frame[event.x, event.y] = min(event_frame[event.x, event.y] + EVENT_BRIGHTNESS, 255)
+            # else:
+            #     event_frame[event.x, event.y] = max(event_frame[event.x, event.y] - EVENT_BRIGHTNESS, 0)
 
+        # print(f"event_frame max: {event_frame.max()}")
+        event_frame = np.clip(event_frame, 0, 255)
         event_frame = cv2.undistort(event_frame.transpose(), self.intrinsic, self.distortion_factors)
+        event_frame = cv2.GaussianBlur(event_frame, ksize=(5, 5), sigmaX=0)
         event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
 
-        min_val = event_frame.min()
+        min_val = 0
         range_val = event_frame.max() - min_val
         event_frame = (event_frame - min_val) / range_val
-
+        
         return event_frame

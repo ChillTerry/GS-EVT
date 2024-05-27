@@ -73,7 +73,7 @@ def SE3_exp(deltaT):
     return T
 
 
-def update_pose(camera, converged_threshold=1e-4):
+def update_pose(camera, converged_threshold=5e-4):
     deltaT = torch.cat([camera.cam_trans_delta, camera.cam_rot_delta], axis=0)
 
     T_w2c = torch.eye(4, device=deltaT.device)
@@ -86,6 +86,7 @@ def update_pose(camera, converged_threshold=1e-4):
     new_T = new_w2c[0:3, 3]
 
     converged = deltaT.norm() < converged_threshold
+    # print(f"deltaT norm: {deltaT.norm()}")
     camera.update_RT(new_R, new_T)
 
     camera.cam_rot_delta.data.fill_(0)

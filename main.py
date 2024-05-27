@@ -22,22 +22,27 @@ def main(config_path):
     # Setup parameters
     model_params = munchify(config["Gaussian"]["model_params"])
     pipeline = munchify(config["Gaussian"]["pipeline_params"])
-    background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
+    device = model_params.device
+    background = torch.tensor(model_params.background, dtype=torch.float32, device=device)
     event_data_path = config["Event"]["data_path"]
     max_events_per_frame = config["Event"]["max_events_per_frame"]
 
+    results_dir = os.path.join(BASE_DIR, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
     # Setup camera (viewpoint)
     viewpoint = Camera.init_from_yaml(config)
+    viewpoint.T += 0.2   # Add disturbance on translation
 
     # Setup gaussian model
     gaussians = GaussianModel(model_params.sh_degree)
     gaussians.load_ply(model_params.model_path)
 
     # Setup event data
-    event_arrays = load_events_from_txt(event_data_path, max_events_per_frame)
+    event_arrays = load_events_from_txt(event_data_path, max_events_per_frame, num_arrays=1)
 
     # Init tracker
-    tracker = Tracker(config, event_arrays, viewpoint, gaussians, pipeline, background)
+    tracker = Tracker(config, event_arrays, viewpoint, gaussians, pipeline, background, device)
 
     # Go tracking
     tracker.tracking()

@@ -47,9 +47,9 @@ class RenderFrame:
         sobel_y = F.conv2d(self.intensity_frame, sobel_y_kernel, padding=1)
         self.grad_frame = torch.sqrt(sobel_x**2 + sobel_y**2)
 
-    def get_delta_Ir(self, delta_tau, linear_vel, angular_vel):
-        rot_vec = angular_vel * (delta_tau / 2)
-        trans_vec = linear_vel * (delta_tau / 2)
+    def get_delta_Ir(self, delta_tau):
+        rot_vec = self.viewpoint.angular_vel * (delta_tau / 2)
+        trans_vec = self.viewpoint.linear_vel * (delta_tau / 2)
 
         delta_pose_vec1 = torch.cat([-rot_vec, -trans_vec], axis=0)
         delta_pose1 = SE3_exp(delta_pose_vec1)
