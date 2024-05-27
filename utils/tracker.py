@@ -37,6 +37,7 @@ class Tracker:
         self.intrinsic = np.array(config["Event"]["intrinsic"]["data"]).reshape(3, 3)
         self.distortion_factors = np.array(config["Event"]["distortion_factors"])
         self.converged_threshold = config["Optimizer"]["converged_threshold"]
+        self.max_optim_iter = config["Optimizer"]["max_optim_iter"]
 
     def tracking(self):
         merge_imgs = []
@@ -79,18 +80,18 @@ class Tracker:
                 merge_img[:, :, 2] = delta_Ie_np.squeeze(axis=-1)
                 merge_imgs.append(merge_img)
 
-                if frame_idx == 0:
-                    merge_img = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
-                    merge_img[:, :, 0] = delta_Ir_np.squeeze(axis=-1)
-                    frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
-                    cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), frame)
+                # if frame_idx == 0:
+                #     merge_img = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
+                #     merge_img[:, :, 0] = delta_Ir_np.squeeze(axis=-1)
+                #     frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
+                #     cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), frame)
 
-                    merge_img = np.zeros((delta_Ie_np.shape[0], delta_Ie_np.shape[1], 3), dtype=np.uint8)
-                    merge_img[:, :, 2] = delta_Ie_np.squeeze(axis=-1)
-                    frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
-                    cv2.imwrite(os.path.join("./results", f'delta_Ie.png'), frame)
+                #     merge_img = np.zeros((delta_Ie_np.shape[0], delta_Ie_np.shape[1], 3), dtype=np.uint8)
+                #     merge_img[:, :, 2] = delta_Ie_np.squeeze(axis=-1)
+                #     frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
+                #     cv2.imwrite(os.path.join("./results", f'delta_Ie.png'), frame)
 
-                if converged or optim_iter >= 100:
+                if converged or optim_iter >= self.max_optim_iter:
                     break
                 # break
                 optim_iter += 1

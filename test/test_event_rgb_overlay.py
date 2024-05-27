@@ -35,7 +35,7 @@ def test_event_rgb_overlay(config_path):
     results_dir = os.path.join(BASE_DIR, "results")
     os.makedirs(results_dir, exist_ok=True)
 
-    event_arrays = load_events_from_txt(data_path, max_events_per_frame, num_arrays=1)
+    event_arrays = load_events_from_txt(data_path, max_events_per_frame, array_nums=1)
     eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[0])
     rFrame = RenderFrame(viewpoint, gaussians, pipeline, background)
 

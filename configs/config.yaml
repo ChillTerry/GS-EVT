@@ -50,6 +50,7 @@ Tracking:
     angular_vel: [0.00117929, 0.00191401, 0.00319194]
 
 Optimizer:
+  max_optim_iter: 100
   cam_rot_delta: 0.003
   cam_trans_delta: 0.001
   converged_threshold: 0.0005

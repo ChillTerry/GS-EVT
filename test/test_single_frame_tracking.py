@@ -42,7 +42,7 @@ def test_single_frame_tracking(config_path):
     gaussians = GaussianModel(model_params.sh_degree)
     gaussians.load_ply(model_params.model_path)
 
-    event_arrays: List[EventArray] = load_events_from_txt(data_path, max_events_per_frame, num_arrays=1)
+    event_arrays: List[EventArray] = load_events_from_txt(data_path, max_events_per_frame, array_nums=1)
     delta_tau = event_arrays[0].duration()
 
     eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[0])
