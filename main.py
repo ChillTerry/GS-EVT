@@ -32,7 +32,7 @@ def main(config_path):
 
     # Setup camera (viewpoint)
     viewpoint = Camera.init_from_yaml(config)
-    viewpoint.T += 0.2   # Add disturbance on translation
+    # viewpoint.T += 0.3
 
     # Setup gaussian model
     gaussians = GaussianModel(model_params.sh_degree)

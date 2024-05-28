@@ -40,7 +40,7 @@ class Tracker:
         self.max_optim_iter = config["Optimizer"]["max_optim_iter"]
 
     def tracking(self):
-        merge_imgs = []
+        overlay_imgs = []
         frame_idx = 0
         while True:
             opt_params = []
@@ -75,27 +75,33 @@ class Tracker:
 
                 delta_Ie_np = delta_Ie.detach().cpu().numpy().transpose(1, 2, 0) * 255
                 delta_Ir_np = delta_Ir.detach().cpu().numpy().transpose(1, 2, 0) * 255
-                merge_img = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
-                merge_img[:, :, 0] = delta_Ir_np.squeeze(axis=-1)
-                merge_img[:, :, 2] = delta_Ie_np.squeeze(axis=-1)
-                merge_imgs.append(merge_img)
 
-                # if frame_idx == 0:
-                #     merge_img = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
-                #     merge_img[:, :, 0] = delta_Ir_np.squeeze(axis=-1)
-                #     frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
-                #     cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), frame)
+                gray_Ir = ((delta_Ir_np + 255) / 2)
+                gray_Ir = gray_Ir.astype(np.uint8)
+                gray_Ir = cv2.cvtColor(gray_Ir, cv2.COLOR_GRAY2BGR)
+                cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), gray_Ir)
 
-                #     merge_img = np.zeros((delta_Ie_np.shape[0], delta_Ie_np.shape[1], 3), dtype=np.uint8)
-                #     merge_img[:, :, 2] = delta_Ie_np.squeeze(axis=-1)
-                #     frame = cv2.cvtColor(merge_img, cv2.COLOR_RGB2BGR)
-                #     cv2.imwrite(os.path.join("./results", f'delta_Ie.png'), frame)
+                color_Ie = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
+                negative_delta_Ie_np = np.where(delta_Ie_np < 0, delta_Ie_np, 0)
+                positive_delta_Ie_np = np.where(delta_Ie_np > 0, delta_Ie_np, 0)
+                color_Ie[:, :, 0] = positive_delta_Ie_np.squeeze(axis=-1)
+                color_Ie[:, :, 2] = -negative_delta_Ie_np.squeeze(axis=-1)
 
+                # Overlay the color image onto the grayscale image using a weighted sum
+                alpha = 0.5  # Define the transparency level: 0.0 - completely transparent; 1.0 - completely opaque
+                overlay_img = cv2.addWeighted(color_Ie, alpha, gray_Ir, 1 - alpha, 0)
+                overlay_imgs.append(overlay_img)
+                # cv2.imwrite(os.path.join("./results", f'tracking_frame.png'), overlay_img)
+                # cv2.imshow("img", overlay_img)
+                # if cv2.waitKey(0) == 27:
+                #     break
+
+                optim_iter += 1
                 if converged or optim_iter >= self.max_optim_iter:
                     break
-                # break
-                optim_iter += 1
             print(f"optim_iter: {optim_iter}")
+
             frame_idx += 1
-            break
-        imageio.mimsave(os.path.join("./results", f'single_frame_tracking.gif'), merge_imgs, 'GIF', duration=0.1)
+            if frame_idx >= len(self.event_arrays):
+                break
+        imageio.mimsave(os.path.join("./results", f'single_frame_tracking.gif'), overlay_imgs, 'GIF', duration=0.1)

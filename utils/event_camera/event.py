@@ -11,9 +11,6 @@ def load_events_from_txt(data_path, max_events_per_frame, array_nums=None):
     event_arrays = []
 
     with open(data_path, 'r', encoding='utf-8') as event_file:
-        # Preallocate event_array only if we're not limiting the number of arrays
-        preallocate_size = max_events_per_frame
-
         event_array = EventArray()
         event_count = 0
 
@@ -55,7 +52,7 @@ class EventArray:
         self.events.append(event)
 
     def size(self):
-        return len(self.events)  # Count non-None events
+        return len(self.events)
 
     def duration(self):
         if self.size() > 0:
@@ -78,28 +75,32 @@ class EventFrame:
 
     def integrate_events(self, event_array: EventArray):
         """Integrates events into the visual frame based on their coordinates and polarities."""
-        event_frame = np.zeros((self.img_width, self.img_height), dtype=np.uint8)
-        for i in range(event_array.size()):
-            event = event_array.events[i]
-            event_frame[event.x, event.y] = event_frame[event.x, event.y] + EVENT_BRIGHTNESS
+        event_frame = np.zeros((self.img_height, self.img_width), dtype=np.float32)
+        for event in event_array.events:
+            event_frame[event.y, event.x] += 1 if event.polarity else -1
 
-            # if event.x >= self.img_width or event.y >= self.img_height:
-            #     print("WARNING: Ignoring out of bounds event at {}, {}".format(event.x, event.y))
-            #     continue
+        max_val = event_frame.max()
+        min_val = event_frame.min()
 
-            # if event.polarity:
-            #     event_frame[event.x, event.y] = min(event_frame[event.x, event.y] + EVENT_BRIGHTNESS, 255)
-            # else:
-            #     event_frame[event.x, event.y] = max(event_frame[event.x, event.y] - EVENT_BRIGHTNESS, 0)
+        # # Normalize values in the range [min_val, 0] to [-1, 0]
+        # negative_part_mask = event_frame < 0
+        # event_frame[negative_part_mask] = event_frame[negative_part_mask] / abs(min_val)
 
-        # print(f"event_frame max: {event_frame.max()}")
-        event_frame = np.clip(event_frame, 0, 255)
-        event_frame = cv2.undistort(event_frame.transpose(), self.intrinsic, self.distortion_factors)
-        event_frame = cv2.GaussianBlur(event_frame, ksize=(5, 5), sigmaX=0)
+        # # Normalize values in the range [0, max_val] to [0, 1]
+        # positive_part_mask = event_frame >= 0
+        # event_frame[positive_part_mask] = event_frame[positive_part_mask] / max_val
+
+        event_frame = ((event_frame - min_val) / (max_val - min_val)) * 2 - 1
+        event_frame[(event_frame > -0.2) & (event_frame < 0.2)] = 0
+
+        # import matplotlib.pyplot as plt
+        # plt.imshow(event_frame, cmap='viridis', interpolation='none')
+        # plt.colorbar(label='Value')
+        # plt.title('2D Array Distribution')
+        # plt.xlabel('X-axis')
+        # plt.ylabel('Y-axis')
+        # plt.savefig('2D_array_distribution.png', dpi=300, bbox_inches='tight')
+
+        event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
         event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
-
-        min_val = 0
-        range_val = event_frame.max() - min_val
-        event_frame = (event_frame - min_val) / range_val
-
         return event_frame

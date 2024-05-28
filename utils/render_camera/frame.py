@@ -89,10 +89,20 @@ class RenderFrame:
         last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint, self.gaussians, self.background)
         last_intensity_frame = get_intensity_frame(last_render_pkg["render"])
         next_intensity_frame = get_intensity_frame(next_render_pkg["render"])
-        detla_Ir = torch.abs(next_intensity_frame - last_intensity_frame)
+        delta_Ir = next_intensity_frame - last_intensity_frame
 
-        min_val = detla_Ir.min()
-        range_val = detla_Ir.max() - min_val
-        detla_Ir = (detla_Ir - min_val) / range_val
+        max_val = delta_Ir.max()
+        min_val = delta_Ir.min()
+        delta_Ir = ((delta_Ir - min_val) / (max_val - min_val)) * 2 - 1
+        delta_Ir[(delta_Ir > -0.2) & (delta_Ir < 0.2)] = 0
 
-        return detla_Ir
+        # import matplotlib.pyplot as plt
+        # delta_Ir_np = delta_Ir.detach().cpu().numpy().transpose(1, 2, 0)
+        # plt.imshow(delta_Ir_np, cmap='viridis', interpolation='none')
+        # plt.colorbar(label='Value')
+        # plt.title('2D Array Distribution')
+        # plt.xlabel('X-axis')
+        # plt.ylabel('Y-axis')
+        # plt.savefig('2D_array_distribution.png', dpi=300, bbox_inches='tight')
+
+        return delta_Ir

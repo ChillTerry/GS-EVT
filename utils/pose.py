@@ -1,5 +1,6 @@
-import numpy as np
 import torch
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 
 def rt2mat(R, T):
@@ -86,9 +87,26 @@ def update_pose(camera, converged_threshold=5e-4):
     new_T = new_w2c[0:3, 3]
 
     converged = deltaT.norm() < converged_threshold
-    # print(f"deltaT norm: {deltaT.norm()}")
+    print(f"deltaT norm: {deltaT.norm()}")
     camera.update_RT(new_R, new_T)
 
     camera.cam_rot_delta.data.fill_(0)
     camera.cam_trans_delta.data.fill_(0)
     return converged
+
+
+def interpolate_poses(poses: np.ndarray) -> np.ndarray:
+    """ Generates an interpolated pose based on the first two poses in the given array.
+    Args:
+        poses: An array of poses for the frames (i - 2, i - 1),
+               where each pose is represented by a 4x4 transformation matrix.
+    Returns:
+        A 4x4 numpy ndarray representing the interpolated transformation matrix.
+    """
+    quat_poses = Rotation.from_matrix(poses[:, :3, :3]).as_quat()
+    init_rot = quat_poses[1] + (quat_poses[1] - quat_poses[0])
+    init_trans = poses[1, :3, 3] + (poses[1, :3, 3] - poses[0, :3, 3])
+    init_transformation = np.eye(4)
+    init_transformation[:3, :3] = Rotation.from_quat(init_rot).as_matrix()
+    init_transformation[:3, 3] = init_trans
+    return init_transformation
