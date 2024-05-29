@@ -27,7 +27,7 @@ def test_event_rgb_overlay(config_path):
     distortion_factors = np.array(config["Event"]["distortion_factors"])
     model_params = munchify(config["Gaussian"]["model_params"])
     pipeline = munchify(config["Gaussian"]["pipeline_params"])
-    background = torch.tensor(config["Gaussian"]["background"], dtype=torch.float32, device=device)
+    background = torch.tensor(model_params.background, dtype=torch.float32, device=device)
     viewpoint = Camera.init_from_yaml(config)
     gaussians = GaussianModel(model_params.sh_degree)
     gaussians.load_ply(model_params.model_path)
@@ -38,12 +38,37 @@ def test_event_rgb_overlay(config_path):
     event_arrays = load_events_from_txt(data_path, max_events_per_frame, array_nums=1)
     eFrame = EventFrame(img_width, img_height, intrinsic, distortion_factors, event_arrays[0])
     rFrame = RenderFrame(viewpoint, gaussians, pipeline, background)
+    render_pkg = rFrame.render()
+    color_frame = render_pkg["render"]
+    color_frame = color_frame.detach().cpu().numpy().transpose(1, 2, 0) * 255
+    color_frame = cv2.cvtColor(color_frame, cv2.COLOR_RGB2BGR)
+    color_frame = color_frame.astype(np.uint8)
 
-    out_img = rFrame.intensity_frame.detach().cpu().numpy().transpose(1, 2, 0) * 255
-    out_img = cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR)
-    out_img[..., 2] = eFrame.delta_Ie.detach().cpu().numpy().squeeze(axis=0) * 255
+    delta_Ie = eFrame.delta_Ie.detach().cpu().numpy().transpose(1, 2, 0) * 255
+    color_Ie = np.zeros((delta_Ie.shape[0], delta_Ie.shape[1], 3), dtype=np.uint8)
+    negative_delta_Ie = np.where(delta_Ie < 0, delta_Ie, 0)
+    positive_delta_Ie = np.where(delta_Ie > 0, delta_Ie, 0)
+    color_Ie[:, :, 2] = positive_delta_Ie.squeeze(axis=-1)
+    color_Ie[:, :, 0] = -negative_delta_Ie.squeeze(axis=-1)
 
-    cv2.imwrite(os.path.join(results_dir, 'event_rgb_overlay_frame.png'), out_img)
+    delta_Ir = rFrame.get_delta_Ir(0.172).detach().cpu().numpy().transpose(1, 2, 0) * 255
+    gray_Ir = ((delta_Ir + 255) / 2)
+    gray_Ir = gray_Ir.astype(np.uint8)
+    gray_Ir = cv2.cvtColor(gray_Ir, cv2.COLOR_GRAY2BGR)
+
+    print(color_frame.shape)
+    print(color_Ie.shape)
+    print(color_frame.dtype)
+    print(color_Ie.dtype)
+    cv2.imwrite(os.path.join(results_dir, 'color_frame.png'), color_frame)
+    cv2.imwrite(os.path.join(results_dir, 'delta_Ie.png'), color_Ie)
+    cv2.imwrite(os.path.join(results_dir, 'delta_Ir.png'), delta_Ir)
+    cv2.imwrite(os.path.join(results_dir, 'gray_Ir.png'), gray_Ir)
+
+    # Overlay the color image onto the grayscale image using a weighted sum
+    alpha = 0.5  # Define the transparency level: 0.0 - completely transparent; 1.0 - completely opaque
+    overlay_img = cv2.addWeighted(color_Ie, alpha, color_frame, 1 - alpha, 0)
+    cv2.imwrite(os.path.join(results_dir, 'event_rgb_overlay_frame.png'), overlay_img)
 
 
 if __name__ == "__main__":

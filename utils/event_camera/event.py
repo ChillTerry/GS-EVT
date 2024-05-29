@@ -79,8 +79,14 @@ class EventFrame:
         for event in event_array.events:
             event_frame[event.y, event.x] += 1 if event.polarity else -1
 
+        event_frame =cv2.undistort(event_frame, self.intrinsic, self.distortion_factors)
+        event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
+        event_frame = np.abs(event_frame)
         max_val = event_frame.max()
         min_val = event_frame.min()
+        # abs_max_val = max(np.abs(max_val), np.abs(min_val))
+        event_frame = ((event_frame - min_val) / (max_val - min_val))
+        # event_frame[(event_frame < 0.1)] = 0
 
         # # Normalize values in the range [min_val, 0] to [-1, 0]
         # negative_part_mask = event_frame < 0
@@ -90,9 +96,6 @@ class EventFrame:
         # positive_part_mask = event_frame >= 0
         # event_frame[positive_part_mask] = event_frame[positive_part_mask] / max_val
 
-        event_frame = ((event_frame - min_val) / (max_val - min_val)) * 2 - 1
-        event_frame[(event_frame > -0.2) & (event_frame < 0.2)] = 0
-
         # import matplotlib.pyplot as plt
         # plt.imshow(event_frame, cmap='viridis', interpolation='none')
         # plt.colorbar(label='Value')
@@ -101,6 +104,5 @@ class EventFrame:
         # plt.ylabel('Y-axis')
         # plt.savefig('2D_array_distribution.png', dpi=300, bbox_inches='tight')
 
-        event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
         event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
         return event_frame

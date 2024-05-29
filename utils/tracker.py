@@ -13,7 +13,7 @@ from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 
 def tracking_loss(delta_Ir, delta_Ie):
-    return torch.abs((delta_Ir - delta_Ie)).mean()
+    return torch.abs(delta_Ir - delta_Ie).mean()
 
 
 class Tracker:
@@ -53,7 +53,7 @@ class Tracker:
             optimizer = torch.optim.Adam(opt_params)
 
             delta_tau = self.event_arrays[frame_idx].duration()
-            # print(delta_tau)
+            print(delta_tau)
             eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic,
                                 self.distortion_factors, self.event_arrays[frame_idx])
             delta_Ie = eFrame.delta_Ie
@@ -76,22 +76,26 @@ class Tracker:
                 delta_Ie_np = delta_Ie.detach().cpu().numpy().transpose(1, 2, 0) * 255
                 delta_Ir_np = delta_Ir.detach().cpu().numpy().transpose(1, 2, 0) * 255
 
-                gray_Ir = ((delta_Ir_np + 255) / 2)
-                gray_Ir = gray_Ir.astype(np.uint8)
+                gray_Ir = delta_Ir_np.astype(np.uint8)
                 gray_Ir = cv2.cvtColor(gray_Ir, cv2.COLOR_GRAY2BGR)
-                cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), gray_Ir)
+                if optim_iter == 0:
+                    cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), gray_Ir)
 
                 color_Ie = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
                 negative_delta_Ie_np = np.where(delta_Ie_np < 0, delta_Ie_np, 0)
                 positive_delta_Ie_np = np.where(delta_Ie_np > 0, delta_Ie_np, 0)
                 color_Ie[:, :, 0] = positive_delta_Ie_np.squeeze(axis=-1)
                 color_Ie[:, :, 2] = -negative_delta_Ie_np.squeeze(axis=-1)
+                color_Ie = cv2.cvtColor(color_Ie, cv2.COLOR_RGB2BGR)
+                if optim_iter == 0:
+                    cv2.imwrite(os.path.join("./results", f'delta_Ie.png'), color_Ie)
 
                 # Overlay the color image onto the grayscale image using a weighted sum
                 alpha = 0.5  # Define the transparency level: 0.0 - completely transparent; 1.0 - completely opaque
                 overlay_img = cv2.addWeighted(color_Ie, alpha, gray_Ir, 1 - alpha, 0)
-                overlay_imgs.append(overlay_img)
-                # cv2.imwrite(os.path.join("./results", f'tracking_frame.png'), overlay_img)
+                overlay_imgs.append(cv2.cvtColor(overlay_img, cv2.COLOR_BGR2RGB))
+                if optim_iter == 0:
+                    cv2.imwrite(os.path.join("./results", f'tracking_frame.png'), overlay_img)
                 # cv2.imshow("img", overlay_img)
                 # if cv2.waitKey(0) == 27:
                 #     break
