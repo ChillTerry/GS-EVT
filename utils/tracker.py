@@ -76,12 +76,13 @@ class Tracker:
                 delta_Ie_np = delta_Ie.detach().cpu().numpy().transpose(1, 2, 0) * 255
                 delta_Ir_np = delta_Ir.detach().cpu().numpy().transpose(1, 2, 0) * 255
 
-                gray_Ir = delta_Ir_np.astype(np.uint8)
+                gray_Ir = (delta_Ir_np + 255) / 2
+                gray_Ir = gray_Ir.astype(np.uint8)
                 gray_Ir = cv2.cvtColor(gray_Ir, cv2.COLOR_GRAY2BGR)
                 if optim_iter == 0:
                     cv2.imwrite(os.path.join("./results", f'delta_Ir.png'), gray_Ir)
 
-                color_Ie = np.zeros((delta_Ir_np.shape[0], delta_Ir_np.shape[1], 3), dtype=np.uint8)
+                color_Ie = np.zeros((delta_Ie_np.shape[0], delta_Ie_np.shape[1], 3), dtype=np.uint8)
                 negative_delta_Ie_np = np.where(delta_Ie_np < 0, delta_Ie_np, 0)
                 positive_delta_Ie_np = np.where(delta_Ie_np > 0, delta_Ie_np, 0)
                 color_Ie[:, :, 0] = positive_delta_Ie_np.squeeze(axis=-1)

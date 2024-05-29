@@ -100,15 +100,16 @@ class RenderFrame:
         abs_max_val = max(torch.abs(max_val), torch.abs(min_val))
         delta_Ir = delta_Ir / abs_max_val
         # delta_Ir = ((delta_Ir - min_val) / (max_val - min_val))
-        # delta_Ir[(delta_Ir < 0.1)] = 0
+        # delta_Ir[(delta_Ir > -0.1) & (delta_Ir < 0.1)] = 0
 
         # import matplotlib.pyplot as plt
         # delta_Ir_np = delta_Ir.detach().cpu().numpy().transpose(1, 2, 0)
+        # plt.close()
         # plt.imshow(delta_Ir_np, cmap='viridis', interpolation='none')
         # plt.colorbar(label='Value')
         # plt.title('2D Array Distribution')
         # plt.xlabel('X-axis')
         # plt.ylabel('Y-axis')
-        # plt.savefig('2D_array_distribution.png', dpi=300, bbox_inches='tight')
+        # plt.savefig('delta_Ir_filter_abs_below_0.png', dpi=300, bbox_inches='tight')
 
         return delta_Ir

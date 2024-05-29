@@ -78,7 +78,6 @@ class EventFrame:
         event_frame = np.zeros((self.img_height, self.img_width), dtype=np.float32)
         for event in event_array.events:
             event_frame[event.y, event.x] += 1 if event.polarity else -1
-        print(event_frame.max())
         event_frame =cv2.undistort(event_frame, self.intrinsic, self.distortion_factors)
         event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
         max_val = event_frame.max()
@@ -86,7 +85,7 @@ class EventFrame:
         abs_max_val = max(np.abs(max_val), np.abs(min_val))
         event_frame = event_frame / abs_max_val
         # event_frame = ((event_frame - min_val) / (max_val - min_val))
-        # event_frame[(event_frame < 0.1)] = 0
+        event_frame[(event_frame > -0.1) & (event_frame < 0.1)] = 0
 
         # # Normalize values in the range [min_val, 0] to [-1, 0]
         # negative_part_mask = event_frame < 0
@@ -97,12 +96,13 @@ class EventFrame:
         # event_frame[positive_part_mask] = event_frame[positive_part_mask] / max_val
 
         # import matplotlib.pyplot as plt
+        # plt.close()
         # plt.imshow(event_frame, cmap='viridis', interpolation='none')
         # plt.colorbar(label='Value')
         # plt.title('2D Array Distribution')
         # plt.xlabel('X-axis')
         # plt.ylabel('Y-axis')
-        # plt.savefig('2D_array_distribution.png', dpi=300, bbox_inches='tight')
+        # plt.savefig('delta_Ie_filter_abs_below_0.png', dpi=300, bbox_inches='tight')
 
         event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
         return event_frame
