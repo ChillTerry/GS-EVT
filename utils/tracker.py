@@ -13,7 +13,7 @@ from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 
 def tracking_loss(delta_Ir, delta_Ie):
-    return torch.abs(delta_Ir - delta_Ie).mean()
+    return torch.norm((delta_Ir - delta_Ie))
 
 
 class Tracker:

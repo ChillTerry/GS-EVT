@@ -78,14 +78,14 @@ class EventFrame:
         event_frame = np.zeros((self.img_height, self.img_width), dtype=np.float32)
         for event in event_array.events:
             event_frame[event.y, event.x] += 1 if event.polarity else -1
-
+        print(event_frame.max())
         event_frame =cv2.undistort(event_frame, self.intrinsic, self.distortion_factors)
         event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
-        event_frame = np.abs(event_frame)
         max_val = event_frame.max()
         min_val = event_frame.min()
-        # abs_max_val = max(np.abs(max_val), np.abs(min_val))
-        event_frame = ((event_frame - min_val) / (max_val - min_val))
+        abs_max_val = max(np.abs(max_val), np.abs(min_val))
+        event_frame = event_frame / abs_max_val
+        # event_frame = ((event_frame - min_val) / (max_val - min_val))
         # event_frame[(event_frame < 0.1)] = 0
 
         # # Normalize values in the range [min_val, 0] to [-1, 0]

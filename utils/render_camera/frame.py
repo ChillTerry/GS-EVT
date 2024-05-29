@@ -93,12 +93,13 @@ class RenderFrame:
         last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint, self.gaussians, self.background)
         last_intensity_frame = get_intensity_frame(last_render_pkg["render"])
         next_intensity_frame = get_intensity_frame(next_render_pkg["render"])
-        delta_Ir = torch.abs(next_intensity_frame - last_intensity_frame)
+        delta_Ir = next_intensity_frame - last_intensity_frame
 
         max_val = delta_Ir.max()
         min_val = delta_Ir.min()
-        # abs_max_val = max(torch.abs(max_val), torch.abs(min_val))
-        delta_Ir = ((delta_Ir - min_val) / (max_val - min_val))
+        abs_max_val = max(torch.abs(max_val), torch.abs(min_val))
+        delta_Ir = delta_Ir / abs_max_val
+        # delta_Ir = ((delta_Ir - min_val) / (max_val - min_val))
         # delta_Ir[(delta_Ir < 0.1)] = 0
 
         # import matplotlib.pyplot as plt
