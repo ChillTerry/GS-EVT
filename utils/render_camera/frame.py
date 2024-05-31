@@ -97,7 +97,7 @@ class RenderFrame:
 
         max_val = delta_Ir.max()
         min_val = delta_Ir.min()
-        abs_max_val = max(torch.abs(max_val), torch.abs(min_val))
+        abs_max_val = max(max_val, torch.abs(min_val))
         delta_Ir = delta_Ir / abs_max_val
         # delta_Ir = ((delta_Ir - min_val) / (max_val - min_val))
         # delta_Ir[(delta_Ir > -0.1) & (delta_Ir < 0.1)] = 0

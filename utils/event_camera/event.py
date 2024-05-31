@@ -65,44 +65,54 @@ class EventArray:
 class EventFrame:
     """An EventFrame module represented in the rendering procedure."""
 
-    def __init__(self, img_width, img_height, intrinsic, distortion_factors, event_array: EventArray, device='cuda'):
+    def __init__(self, img_width, img_height, intrinsic, distortion_factors,
+                 filter_threshold, event_array: EventArray, device='cuda'):
         self.device = device
         self.img_width = img_width
         self.img_height = img_height
         self.intrinsic = intrinsic
         self.distortion_factors = distortion_factors
+        self.filter_threshold = filter_threshold
         self.delta_Ie = self.integrate_events(event_array)
 
     def integrate_events(self, event_array: EventArray):
         """Integrates events into the visual frame based on their coordinates and polarities."""
-        event_frame = np.zeros((self.img_height, self.img_width), dtype=np.float32)
+        delta_Ie = np.zeros((self.img_height, self.img_width), dtype=np.float32)
         for event in event_array.events:
-            event_frame[event.y, event.x] += 1 if event.polarity else -1
-        event_frame =cv2.undistort(event_frame, self.intrinsic, self.distortion_factors)
-        event_frame = cv2.GaussianBlur(event_frame, (5, 5), 0)
-        max_val = event_frame.max()
-        min_val = event_frame.min()
-        abs_max_val = max(np.abs(max_val), np.abs(min_val))
-        event_frame = event_frame / abs_max_val
-        # event_frame = ((event_frame - min_val) / (max_val - min_val))
-        event_frame[(event_frame > -0.1) & (event_frame < 0.1)] = 0
+            delta_Ie[event.y, event.x] += 1 if event.polarity else -1
+        delta_Ie =cv2.undistort(delta_Ie, self.intrinsic, self.distortion_factors)
+        delta_Ie = cv2.GaussianBlur(delta_Ie, (5, 5), 0)
+        max_val = delta_Ie.max()
+        min_val = delta_Ie.min()
+        abs_max_val = max(max_val, np.abs(min_val))
+        delta_Ie = delta_Ie / abs_max_val
+        # delta_Ie = ((delta_Ie - min_val) / (max_val - min_val))
+        if abs_max_val == max_val:
+            pos_filter_threshold = self.filter_threshold
+            neg_filter_threshold = self.filter_threshold * (np.abs(min_val) / abs_max_val)
+        else:
+            pos_filter_threshold = self.filter_threshold * (max_val / abs_max_val)
+            neg_filter_threshold = self.filter_threshold
+        print(f"pos_filter_threshold: {pos_filter_threshold}")
+        print(f"neg_filter_threshold: {neg_filter_threshold}")
+        delta_Ie[(delta_Ie > -neg_filter_threshold) & (delta_Ie < pos_filter_threshold)] = 0
 
         # # Normalize values in the range [min_val, 0] to [-1, 0]
-        # negative_part_mask = event_frame < 0
-        # event_frame[negative_part_mask] = event_frame[negative_part_mask] / abs(min_val)
+        # negative_part_mask = delta_Ie < 0
+        # delta_Ie[negative_part_mask] = delta_Ie[negative_part_mask] / abs(min_val)
 
         # # Normalize values in the range [0, max_val] to [0, 1]
-        # positive_part_mask = event_frame >= 0
-        # event_frame[positive_part_mask] = event_frame[positive_part_mask] / max_val
+        # positive_part_mask = delta_Ie >= 0
+        # delta_Ie[positive_part_mask] = delta_Ie[positive_part_mask] / max_val
 
         # import matplotlib.pyplot as plt
         # plt.close()
-        # plt.imshow(event_frame, cmap='viridis', interpolation='none')
+        # plt.imshow(delta_Ie, cmap='viridis', interpolation='none')
         # plt.colorbar(label='Value')
         # plt.title('2D Array Distribution')
         # plt.xlabel('X-axis')
         # plt.ylabel('Y-axis')
         # plt.savefig('delta_Ie_filter_abs_below_0.png', dpi=300, bbox_inches='tight')
 
-        event_frame = torch.tensor(np.expand_dims(event_frame, axis=0), device=self.device)
-        return event_frame
+        delta_Ie = torch.tensor(np.expand_dims(delta_Ie, axis=0), device=self.device)
+        return delta_Ie

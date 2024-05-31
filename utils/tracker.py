@@ -34,6 +34,7 @@ class Tracker:
         self.background = background
         self.img_width = self.config["Event"]["img_width"]
         self.img_height = self.config["Event"]["img_height"]
+        self.filter_threshold = self.config["Event"]["filter_threshold"]
         self.intrinsic = np.array(config["Event"]["intrinsic"]["data"]).reshape(3, 3)
         self.distortion_factors = np.array(config["Event"]["distortion_factors"])
         self.converged_threshold = config["Optimizer"]["converged_threshold"]
@@ -54,8 +55,8 @@ class Tracker:
 
             delta_tau = self.event_arrays[frame_idx].duration()
             print(delta_tau)
-            eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic,
-                                self.distortion_factors, self.event_arrays[frame_idx])
+            eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic, self.distortion_factors,
+                                self.filter_threshold, self.event_arrays[frame_idx])
             delta_Ie = eFrame.delta_Ie
 
             optim_iter = 0
