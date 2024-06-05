@@ -32,7 +32,7 @@ def main(config_path):
 
     # Setup camera (viewpoint)
     viewpoint = Camera.init_from_yaml(config)
-    viewpoint.T += 0.2
+    # viewpoint.T += 0.2
     # viewpoint.R += 0.015
 
     # Setup gaussian model
@@ -40,7 +40,7 @@ def main(config_path):
     gaussians.load_ply(model_params.model_path)
 
     # Setup event data
-    event_arrays = load_events_from_txt(event_data_path, max_events_per_frame, array_nums=1)
+    event_arrays = load_events_from_txt(event_data_path, max_events_per_frame, array_nums=10)
 
     # Init tracker
     tracker = Tracker(config, event_arrays, viewpoint, gaussians, pipeline, background, device)

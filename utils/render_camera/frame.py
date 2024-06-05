@@ -85,12 +85,15 @@ class RenderFrame:
         next_R = next_pose[:3, :3]
         next_t = next_pose[:3, 3]
 
-        last_viewpoint = Camera(last_R, last_t,  self.viewpoint.linear_vel, self.viewpoint.angular_vel,self.viewpoint.FoVx,
-                                self.viewpoint.FoVy, self.viewpoint.image_width, self.viewpoint.image_height)
-        next_viewpoint = Camera(next_R, next_t, self.viewpoint.linear_vel, self.viewpoint.angular_vel, self.viewpoint.FoVx,
-                                self.viewpoint.FoVy, self.viewpoint.image_width, self.viewpoint.image_height)
+        last_viewpoint = Camera(last_R, last_t,  self.viewpoint.linear_vel, self.viewpoint.angular_vel,
+                                self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
+                                self.viewpoint.image_height)
+        next_viewpoint = Camera(next_R, next_t, self.viewpoint.linear_vel, self.viewpoint.angular_vel,
+                                self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
+                                self.viewpoint.image_height)
 
-        last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint, self.gaussians, self.background)
+        last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint,
+                                                   self.gaussians, self.background)
         last_intensity_frame = get_intensity_frame(last_render_pkg["render"])
         next_intensity_frame = get_intensity_frame(next_render_pkg["render"])
         delta_Ir = next_intensity_frame - last_intensity_frame

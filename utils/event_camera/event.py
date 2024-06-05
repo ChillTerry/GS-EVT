@@ -93,8 +93,8 @@ class EventFrame:
         else:
             pos_filter_threshold = self.filter_threshold * (max_val / abs_max_val)
             neg_filter_threshold = self.filter_threshold
-        print(f"pos_filter_threshold: {pos_filter_threshold}")
-        print(f"neg_filter_threshold: {neg_filter_threshold}")
+        # print(f"pos_filter_threshold: {pos_filter_threshold}")
+        # print(f"neg_filter_threshold: {neg_filter_threshold}")
         delta_Ie[(delta_Ie > -neg_filter_threshold) & (delta_Ie < pos_filter_threshold)] = 0
 
         # # Normalize values in the range [min_val, 0] to [-1, 0]
