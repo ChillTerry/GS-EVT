@@ -1,5 +1,6 @@
 import os
 import cv2
+import time
 import torch
 import imageio
 import numpy as np
@@ -68,8 +69,11 @@ class Tracker:
         self.max_optim_iter = config["Optimizer"]["max_optim_iter"]
 
     def tracking(self):
+        last_imgs = []
         frame_idx = 0
         last_delta_tau = 0
+        os.makedirs("./results/gif_frames", exist_ok=True)
+
         while True:
             overlay_imgs = []
             opt_params = []
@@ -82,24 +86,16 @@ class Tracker:
             optimizer = torch.optim.Adam(opt_params)
 
             delta_tau = self.event_arrays[frame_idx].duration()
-            # print(delta_tau)
+            print(f"delta_tau: {delta_tau}")
             eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic, self.distortion_factors,
                                 self.filter_threshold, self.event_arrays[frame_idx])
             delta_Ie = eFrame.delta_Ie
 
             if frame_idx != 0:
-                fly_time = (last_delta_tau + delta_tau) / 2
-                rot_vec = self.viewpoint.angular_vel * fly_time
-                trans_vec = self.viewpoint.linear_vel * fly_time
-
-                delta_pose_vec = torch.cat([rot_vec, trans_vec], axis=0)
-                delta_pose = SE3_exp(delta_pose_vec)
-                last_pose = rt2mat(self.viewpoint.R, self.viewpoint.T, self.viewpoint.device)
-
-                curr_pose = delta_pose @ last_pose
-                self.viewpoint.update_RT(curr_pose[:3, :3], curr_pose[:3, 3])
+                self.viewpoint.const_vel_model((delta_tau + last_delta_tau) / 2)
 
             optim_iter = 0
+            opt_start_time = time.time()
             while True:
                 rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
                 delta_Ir = rFrame.get_delta_Ir(delta_tau)
@@ -112,8 +108,7 @@ class Tracker:
                     converged = update_pose(self.viewpoint, self.converged_threshold)
                     optimizer.zero_grad()
 
-                if optim_iter == 0:
-                # if frame_idx == 0 and optim_iter == 0:
+                if frame_idx == 0 and optim_iter == 0:
                     img = overlay_img(delta_Ir, delta_Ie, frame_idx)
                 else:
                     img = overlay_img(delta_Ir, delta_Ie)
@@ -122,28 +117,26 @@ class Tracker:
                 optim_iter += 1
                 if converged or optim_iter >= self.max_optim_iter:
                     break
+            opt_end_time = time.time()
+            opt_time = opt_end_time - opt_start_time
+            print(f"opt_time: {opt_time}")
             print(f"optim_iter: {optim_iter}")
+            print("="*20)
+            last_imgs.append(img)
 
             if frame_idx != 0:
-                delta_theta = SO3_log(self.viewpoint.R.t()) - SO3_log(last_R.t())
-                # delta_theta = SO3_log(self.viewpoint.R @ last_R.t())
-                # print(f"delta_theta1: {delta_theta1}")
-                # print(f"delta_theta: {delta_theta}")
-                self.viewpoint.angular_vel = delta_theta / fly_time
-                delta_t = -self.viewpoint.R.t() @ self.viewpoint.T + last_R.t() @ last_t
-                # delta_t = -self.viewpoint.R @ last_R @ last_t + self.viewpoint.T
-                # print(f"delta_t1: {delta_t1}")
-                # print(f"delta_t: {delta_t}")
-                self.viewpoint.linear_vel = delta_t / fly_time
-            print(f"angular_vel: {self.viewpoint.angular_vel}")
-            print(f"linear_vel: {self.viewpoint.linear_vel}")
-            last_R = self.viewpoint.R
-            last_t = self.viewpoint.T
+                self.viewpoint.update_velocity((delta_tau + last_delta_tau) / 2)
+            # print(f"angular_vel: {self.viewpoint.angular_vel}")
+            # print(f"linear_vel: {self.viewpoint.linear_vel}")
+
             last_delta_tau = delta_tau
 
-            imageio.mimsave(os.path.join("./results", f'frame{frame_idx}_tracking.gif'),
+            imageio.mimsave(os.path.join("./results/gif_frames", f'tracking_frame{frame_idx}.gif'),
                             overlay_imgs, 'GIF', duration=0.1)
 
             frame_idx += 1
             if frame_idx >= len(self.event_arrays):
                 break
+
+        imageio.mimsave(os.path.join("./results", f'multi_frame_tracking.gif'),
+                        last_imgs, 'GIF', duration=0.5)

@@ -3,18 +3,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
-def rt2mat(R, T, device):
-    mat = torch.eye(4, device=device)
+def rt2mat(R, T):
+    mat = torch.eye(4, device=R.device)
     mat[0:3, 0:3] = R
     mat[0:3, 3] = T
     return mat
-
-
-def rot2euler(R):
-    if isinstance(R, torch.tensor):
-        R = R.cpu
-    r = Rotation.from_matrix(R)
-    euler = torch.tensor
 
 
 def skew_sym_mat(x):
@@ -60,8 +53,7 @@ def SO3_log(R):
         R[1, 0] - R[0, 1],
     ], device=R.device) / (2 * torch.sin(theta))
 
-    euler_angles = theta * axis
-    return euler_angles
+    return theta * axis
 
 
 def V(theta):

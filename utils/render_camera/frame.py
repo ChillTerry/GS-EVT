@@ -55,7 +55,7 @@ class RenderFrame:
         rot_vec = self.viewpoint.angular_vel * (delta_tau / 2)
         trans_vec = self.viewpoint.linear_vel * (delta_tau / 2)
 
-        delta_pose_vec1 = torch.cat([-rot_vec, -trans_vec], axis=0)
+        delta_pose_vec1 = torch.cat([-trans_vec, -rot_vec], axis=0)
         delta_pose1 = SE3_exp(delta_pose_vec1)
         # theta = torch.norm(rot_vec)
         # u = angular_vel / torch.norm(angular_vel)
@@ -71,7 +71,7 @@ class RenderFrame:
         # delta_pose1[0:3, 0:3] = delta_rot1
         # delta_pose1[0:3, 3] = trans_vec
 
-        delta_pose_vec2 = torch.cat([rot_vec, trans_vec], axis=0)
+        delta_pose_vec2 = torch.cat([trans_vec, rot_vec], axis=0)
         delta_pose2 = SE3_exp(delta_pose_vec2)
 
         curr_pose = torch.eye(4, device=self.viewpoint.device)

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from munch import munchify
 
-from utils.pose import update_pose
+from utils.pose import update_pose, SE3_exp, rt2mat, SO3_log
 from gaussian_splatting.utils.graphics_utils import getWorld2View2, getProjectionMatrix, focal2fov
 
 
@@ -89,6 +89,36 @@ class Camera(nn.Module):
     def update_RT(self, R, t):
         self.R = R.to(device=self.device)
         self.T = t.to(device=self.device)
+
+    def const_vel_model(self, tau):
+        # move the estimated pose according to constant velocity model 
+        # angular_vel is in the form of euler angle(xyz)
+        rot_vec = self.angular_vel * tau
+        trans_vec = self.linear_vel * tau
+
+        delta_pose_vec1 = torch.cat([trans_vec, rot_vec], axis=0)
+        delta_pose1 = SE3_exp(delta_pose_vec1)
+        curr_pose = torch.eye(4, device=self.device)
+        curr_pose[0:3, 0:3] = self.R
+        curr_pose[0:3, 3] = self.T
+
+        new_pose = delta_pose1 @ curr_pose
+        new_R = new_pose[:3, :3]
+        new_t = new_pose[:3, 3]
+
+        self.last_R = self.R.clone()
+        self.last_T = self.T.clone()
+        self.update_RT(new_R, new_t)
+
+    def update_velocity(self, fly_time):
+        curr_pose = rt2mat(self.R, self.T)
+        last_pose = rt2mat(self.last_R, self.last_T)
+        delta_pose = curr_pose @ torch.linalg.inv(last_pose)
+        delta_R = delta_pose[:3, :3]
+        delta_t = delta_pose[:3, 3]
+        delta_theta = SO3_log(delta_R)
+        self.angular_vel = delta_theta / fly_time
+        self.linear_vel = delta_t / fly_time
 
     @staticmethod
     def init_from_yaml(config):

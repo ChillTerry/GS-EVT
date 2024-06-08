@@ -7,7 +7,7 @@ from typing import List
 EVENT_BRIGHTNESS = 20  # Define the brightness increment/decrement for events.
 
 
-def load_events_from_txt(data_path, max_events_per_frame, array_nums=None):
+def load_events_from_txt(data_path, max_events_per_frame, array_nums=None, start_time=None):
     event_arrays = []
 
     with open(data_path, 'r', encoding='utf-8') as event_file:
@@ -17,6 +17,8 @@ def load_events_from_txt(data_path, max_events_per_frame, array_nums=None):
         for line in tqdm(event_file, desc="load events"):
             line_data = [int(item) for item in line.strip().split(' ')]
             event = Event(line_data[1], line_data[2], line_data[0], line_data[3])
+            if start_time is not None and np.int(event.ts) < start_time:
+                continue
             event_array.callback(event)
             event_count += 1
 
