@@ -6,7 +6,7 @@ import imageio
 import numpy as np
 from typing import List
 
-from utils.pose import update_pose, SE3_exp, SO3_log, rt2mat
+from utils.pose import update_pose
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
 from utils.event_camera.event import EventFrame, EventArray
@@ -83,22 +83,28 @@ class Tracker:
             opt_params.append({"params": [self.viewpoint.cam_trans_delta],
                             "lr": self.config["Optimizer"]["cam_trans_delta"]})
 
+            # opt_params.append({"params": [self.viewpoint.cam_w_delta],
+            #                 "lr": self.config["Optimizer"]["cam_w_delta"]})
+
+            # opt_params.append({"params": [self.viewpoint.cam_v_delta],
+            #                 "lr": self.config["Optimizer"]["cam_v_delta"]})
+
             optimizer = torch.optim.Adam(opt_params)
 
             delta_tau = self.event_arrays[frame_idx].duration()
-            print(f"delta_tau: {delta_tau}")
+            self.viewpoint.delta_tau = delta_tau
+
             eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic, self.distortion_factors,
                                 self.filter_threshold, self.event_arrays[frame_idx])
             delta_Ie = eFrame.delta_Ie
 
-            if frame_idx != 0:
-                self.viewpoint.const_vel_model((delta_tau + last_delta_tau) / 2)
+            self.viewpoint.const_vel_model((delta_tau + last_delta_tau) / 2)
 
             optim_iter = 0
             opt_start_time = time.time()
             while True:
                 rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
-                delta_Ir = rFrame.get_delta_Ir(delta_tau)
+                delta_Ir = rFrame.get_delta_Ir()
 
                 loss = tracking_loss(delta_Ir, delta_Ie)
                 loss.backward()
@@ -119,10 +125,11 @@ class Tracker:
                     break
             opt_end_time = time.time()
             opt_time = opt_end_time - opt_start_time
-            print(f"opt_time: {opt_time}")
-            print(f"optim_iter: {optim_iter}")
+            print(f"frame_idx:\t{frame_idx}")
+            print(f"optim_iter:\t{optim_iter}")
+            print(f"opt_time:\t{opt_time:.4f}")
+            print(f"delta_tau:\t{delta_tau:.4f}")
             print("="*20)
-            last_imgs.append(img)
 
             if frame_idx != 0:
                 self.viewpoint.update_velocity((delta_tau + last_delta_tau) / 2)
@@ -130,6 +137,7 @@ class Tracker:
             # print(f"linear_vel: {self.viewpoint.linear_vel}")
 
             last_delta_tau = delta_tau
+            last_imgs.append(img)
 
             imageio.mimsave(os.path.join("./results/gif_frames", f'tracking_frame{frame_idx}.gif'),
                             overlay_imgs, 'GIF', duration=0.1)

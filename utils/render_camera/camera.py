@@ -14,12 +14,13 @@ class Camera(nn.Module):
     def __init__(self,
                  R,
                  t,
-                 linear_vel,
                  angular_vel,
+                 linear_vel,
                  fovx,
                  fovy,
                  image_width,
                  image_height,
+                 delta_tau=0,
                  device="cuda"):
         """
         Initializes a new instance of the Camera module.
@@ -48,18 +49,21 @@ class Camera(nn.Module):
         # Camera parameters and attributes
         self.R = R.to(device)
         self.T = t.to(device)
-        self.linear_vel = linear_vel
         self.angular_vel = angular_vel
+        self.linear_vel = linear_vel
         self.FoVx = fovx
         self.FoVy = fovy
         self.image_width = image_width
         self.image_height = image_height
         self.zfar = 100.0  # Far clipping plane distance
         self.znear = 0.01  # Near clipping plane distance
+        self.delta_tau = delta_tau
 
         # For fine-tuning the camera pose
         self.cam_rot_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
         self.cam_trans_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
+        self.cam_w_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
+        self.cam_v_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
 
     @property
     def projection_matrix(self):
@@ -83,6 +87,33 @@ class Camera(nn.Module):
         ).squeeze(0)
 
     @property
+    def last_vel_transform(self):
+        rot_vec, trans_vec = self.compute_motion_vectors()
+        delta_pose_vec = torch.cat([-trans_vec, -rot_vec], axis=0)
+        return SE3_exp(delta_pose_vec)
+
+    @property
+    def last_vel_transform_inv(self):
+        return torch.linalg.inv(self.last_vel_transform())
+
+    @property
+    def next_vel_transform(self):
+        rot_vec, trans_vec = self.compute_motion_vectors()
+        delta_pose_vec = torch.cat([trans_vec, rot_vec], axis=0)
+        return SE3_exp(delta_pose_vec)
+
+    @property
+    def next_vel_transform_inv(self):
+        return torch.linalg.inv(self.next_vel_transform())
+
+    @property
+    def curr_pose(self):
+        curr_pose = torch.eye(4, device=self.device)
+        curr_pose[0:3, 0:3] = self.R
+        curr_pose[0:3, 3] = self.T
+        return curr_pose
+
+    @property
     def camera_center(self):
         return self.world_view_transform.inverse()[3, :3]
 
@@ -90,8 +121,13 @@ class Camera(nn.Module):
         self.R = R.to(device=self.device)
         self.T = t.to(device=self.device)
 
+    def compute_motion_vectors(self):
+        rot_vec = self.angular_vel * (self.delta_tau / 2)
+        trans_vec = self.linear_vel * (self.delta_tau / 2)
+        return rot_vec, trans_vec
+
     def const_vel_model(self, tau):
-        # move the estimated pose according to constant velocity model 
+        # predict the estimated next pose according to constant velocity model
         # angular_vel is in the form of euler angle(xyz)
         rot_vec = self.angular_vel * tau
         trans_vec = self.linear_vel * tau
@@ -110,15 +146,15 @@ class Camera(nn.Module):
         self.last_T = self.T.clone()
         self.update_RT(new_R, new_t)
 
-    def update_velocity(self, fly_time):
+    def update_velocity(self, tau):
         curr_pose = rt2mat(self.R, self.T)
         last_pose = rt2mat(self.last_R, self.last_T)
         delta_pose = curr_pose @ torch.linalg.inv(last_pose)
         delta_R = delta_pose[:3, :3]
         delta_t = delta_pose[:3, 3]
         delta_theta = SO3_log(delta_R)
-        self.angular_vel = delta_theta / fly_time
-        self.linear_vel = delta_t / fly_time
+        self.angular_vel = delta_theta / tau
+        self.linear_vel = delta_t / tau
 
     @staticmethod
     def init_from_yaml(config):
@@ -132,6 +168,6 @@ class Camera(nn.Module):
         angular_vel = torch.tensor(config["Tracking"]["initial_vel"]["angular_vel"], device=device, dtype=torch.float32)
         fovx = focal2fov(calib_params.fx, img_width)
         fovy = focal2fov(calib_params.fy, img_height)
-        viewpoint = Camera(R, t, linear_vel, angular_vel, fovx, fovy, img_width, img_height, device)
+        viewpoint = Camera(R, t, angular_vel, linear_vel, fovx, fovy, img_width, img_height, device=device)
         update_pose(viewpoint)
         return viewpoint

@@ -29,7 +29,6 @@ Event:
   distortion_factors: [-0.39712487,  0.2030699 ,  0.00073509,  0.00397014,  0.16977825]
 
 Tracking:
-  max_iter: 100
   initial_pose:
     rot:
       rows: 3
@@ -45,11 +44,13 @@ Tracking:
       data: [2.24311095, 2.63636504, 0.70613384]
 
   initial_vel:
-    linear_vel: [-0.80285077, -0.35492166,  0.0134317]
     angular_vel: [-0.00748658,  0.01953471,  0.00479119]
+    linear_vel: [-0.80285077, -0.35492166,  0.0134317]
 
 Optimizer:
-  max_optim_iter: 500
+  max_optim_iter: 100
+  converged_threshold: 0.0002
   cam_rot_delta: 0.003
   cam_trans_delta: 0.001
-  converged_threshold: 0.001
+  cam_w_delta: 0.001
+  cam_v_delta: 0.001

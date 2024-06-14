@@ -51,46 +51,23 @@ class RenderFrame:
         sobel_y = F.conv2d(self.intensity_frame, sobel_y_kernel, padding=1)
         self.grad_frame = torch.sqrt(sobel_x**2 + sobel_y**2)
 
-    def get_delta_Ir(self, delta_tau):
-        rot_vec = self.viewpoint.angular_vel * (delta_tau / 2)
-        trans_vec = self.viewpoint.linear_vel * (delta_tau / 2)
+    def get_delta_Ir(self):
+        assert self.viewpoint.delta_tau != 0, f"delta_tau should not be zero, \
+        it should be same as the time interval of event frame"
 
-        delta_pose_vec1 = torch.cat([-trans_vec, -rot_vec], axis=0)
-        delta_pose1 = SE3_exp(delta_pose_vec1)
-        # theta = torch.norm(rot_vec)
-        # u = angular_vel / torch.norm(angular_vel)
-        # cos_theta = torch.cos(-theta)
-        # sin_theta = torch.sin(-theta)
-        # vx = torch.tensor([
-        #     [0, -u[2], u[1]],
-        #     [u[2], 0, -u[0]],
-        #     [-u[1], u[0], 0]
-        # ], device=angular_vel.device)
-        # delta_rot1 = torch.eye(3, device=vx.device) + sin_theta * vx + (1 - cos_theta) * torch.mm(vx, vx)
-        # delta_pose1 = torch.eye(4, device=delta_rot1.device)
-        # delta_pose1[0:3, 0:3] = delta_rot1
-        # delta_pose1[0:3, 3] = trans_vec
+        last_viewpoint_pose = self.viewpoint.last_vel_transform @ self.viewpoint.curr_pose
+        next_viewpoint_pose = self.viewpoint.next_vel_transform @ self.viewpoint.curr_pose
+        last_viewpoint_R = last_viewpoint_pose[:3, :3]
+        last_viewpoint_t = last_viewpoint_pose[:3, 3]
+        next_viewpoint_R = next_viewpoint_pose[:3, :3]
+        next_viewpoint_t = next_viewpoint_pose[:3, 3]
 
-        delta_pose_vec2 = torch.cat([trans_vec, rot_vec], axis=0)
-        delta_pose2 = SE3_exp(delta_pose_vec2)
-
-        curr_pose = torch.eye(4, device=self.viewpoint.device)
-        curr_pose[0:3, 0:3] = self.viewpoint.R
-        curr_pose[0:3, 3] = self.viewpoint.T
-
-        last_pose = delta_pose1 @ curr_pose
-        next_pose = delta_pose2 @ curr_pose
-        last_R = last_pose[:3, :3]
-        last_t = last_pose[:3, 3]
-        next_R = next_pose[:3, :3]
-        next_t = next_pose[:3, 3]
-
-        last_viewpoint = Camera(last_R, last_t,  self.viewpoint.linear_vel, self.viewpoint.angular_vel,
+        last_viewpoint = Camera(last_viewpoint_R, last_viewpoint_t, self.viewpoint.angular_vel, self.viewpoint.linear_vel,
                                 self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
-                                self.viewpoint.image_height)
-        next_viewpoint = Camera(next_R, next_t, self.viewpoint.linear_vel, self.viewpoint.angular_vel,
+                                self.viewpoint.image_height, delta_tau=self.viewpoint.delta_tau)
+        next_viewpoint = Camera(next_viewpoint_R, next_viewpoint_t, self.viewpoint.angular_vel, self.viewpoint.linear_vel,
                                 self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
-                                self.viewpoint.image_height)
+                                self.viewpoint.image_height, delta_tau=self.viewpoint.delta_tau)
 
         last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint,
                                                    self.gaussians, self.background)
