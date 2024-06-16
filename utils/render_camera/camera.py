@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from munch import munchify
 
-from utils.pose import update_pose, SE3_exp, rt2mat, SO3_log
+from utils.pose import SE3_exp
 from gaussian_splatting.utils.graphics_utils import getWorld2View2, getProjectionMatrix, focal2fov
 
 
@@ -87,6 +87,17 @@ class Camera(nn.Module):
         ).squeeze(0)
 
     @property
+    def camera_center(self):
+        return self.world_view_transform.inverse()[3, :3]
+
+    @property
+    def curr_pose(self):
+        curr_pose = torch.eye(4, device=self.device)
+        curr_pose[0:3, 0:3] = self.R
+        curr_pose[0:3, 3] = self.T
+        return curr_pose
+
+    @property
     def last_vel_transform(self):
         rot_vec, trans_vec = self.compute_motion_vectors()
         delta_pose_vec = torch.cat([-trans_vec, -rot_vec], axis=0)
@@ -106,25 +117,45 @@ class Camera(nn.Module):
     def next_vel_transform_inv(self):
         return torch.linalg.inv(self.next_vel_transform)
 
-    @property
-    def curr_pose(self):
-        curr_pose = torch.eye(4, device=self.device)
-        curr_pose[0:3, 0:3] = self.R
-        curr_pose[0:3, 3] = self.T
-        return curr_pose
-
-    @property
-    def camera_center(self):
-        return self.world_view_transform.inverse()[3, :3]
-
-    def update_RT(self, R, t):
-        self.R = R.to(device=self.device)
-        self.T = t.to(device=self.device)
-
     def compute_motion_vectors(self):
         rot_vec = self.angular_vel * (self.delta_tau / 2)
         trans_vec = self.linear_vel * (self.delta_tau / 2)
         return rot_vec, trans_vec
+
+    def update_vwRT(self, converged_threshold):
+        self.update_velocity()
+        converged = self.update_pose(converged_threshold)
+        return converged
+
+    def update_pose(self, converged_threshold=5e-4):
+        deltaT = torch.cat([self.cam_trans_delta, self.cam_rot_delta], axis=0)
+
+        T_w2c = torch.eye(4, device=self.device)
+        T_w2c[0:3, 0:3] = self.R
+        T_w2c[0:3, 3] = self.T
+
+        new_w2c = SE3_exp(deltaT) @ T_w2c
+        new_R = new_w2c[0:3, 0:3]
+        new_T = new_w2c[0:3, 3]
+
+        converged = deltaT.norm() < converged_threshold
+        self.update_RT(new_R, new_T)
+
+        self.cam_rot_delta.data.fill_(0)
+        self.cam_trans_delta.data.fill_(0)
+        return converged
+
+    def update_velocity(self):
+        self.angular_vel += self.cam_w_delta
+        self.linear_vel += self.cam_v_delta
+        print(f"w_delta:\t{self.cam_w_delta.data}")
+        print(f"v_delta:\t{self.cam_v_delta.data}")
+        self.cam_w_delta.data.fill_(0)
+        self.cam_v_delta.data.fill_(0)
+
+    def update_RT(self, R, t):
+        self.R = R.to(device=self.device)
+        self.T = t.to(device=self.device)
 
     def const_vel_model(self, tau):
         # predict the estimated next pose according to constant velocity model
@@ -146,16 +177,6 @@ class Camera(nn.Module):
         self.last_T = self.T.clone()
         self.update_RT(new_R, new_t)
 
-    def update_velocity(self, tau):
-        curr_pose = rt2mat(self.R, self.T)
-        last_pose = rt2mat(self.last_R, self.last_T)
-        delta_pose = curr_pose @ torch.linalg.inv(last_pose)
-        delta_R = delta_pose[:3, :3]
-        delta_t = delta_pose[:3, 3]
-        delta_theta = SO3_log(delta_R)
-        self.angular_vel = delta_theta / tau
-        self.linear_vel = delta_t / tau
-
     @staticmethod
     def init_from_yaml(config):
         img_width = config["Event"]["img_width"]
@@ -169,5 +190,5 @@ class Camera(nn.Module):
         fovx = focal2fov(calib_params.fx, img_width)
         fovy = focal2fov(calib_params.fy, img_height)
         viewpoint = Camera(R, t, angular_vel, linear_vel, fovx, fovy, img_width, img_height, device=device)
-        update_pose(viewpoint)
+        viewpoint.update_pose()
         return viewpoint

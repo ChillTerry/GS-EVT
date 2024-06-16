@@ -62,12 +62,14 @@ class RenderFrame:
         next_viewpoint_R = next_viewpoint_pose[:3, :3]
         next_viewpoint_t = next_viewpoint_pose[:3, 3]
 
-        last_viewpoint = Camera(last_viewpoint_R, last_viewpoint_t, self.viewpoint.angular_vel, self.viewpoint.linear_vel,
-                                self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
-                                self.viewpoint.image_height, delta_tau=self.viewpoint.delta_tau)
-        next_viewpoint = Camera(next_viewpoint_R, next_viewpoint_t, self.viewpoint.angular_vel, self.viewpoint.linear_vel,
-                                self.viewpoint.FoVx, self.viewpoint.FoVy, self.viewpoint.image_width,
-                                self.viewpoint.image_height, delta_tau=self.viewpoint.delta_tau)
+        last_viewpoint = Camera(last_viewpoint_R, last_viewpoint_t, self.viewpoint.angular_vel,
+                                self.viewpoint.linear_vel, self.viewpoint.FoVx, self.viewpoint.FoVy,
+                                self.viewpoint.image_width, self.viewpoint.image_height,
+                                delta_tau=self.viewpoint.delta_tau)
+        next_viewpoint = Camera(next_viewpoint_R, next_viewpoint_t, self.viewpoint.angular_vel,
+                                self.viewpoint.linear_vel, self.viewpoint.FoVx, self.viewpoint.FoVy,
+                                self.viewpoint.image_width, self.viewpoint.image_height,
+                                delta_tau=self.viewpoint.delta_tau)
 
         last_render_pkg, next_render_pkg = render2(last_viewpoint, self.viewpoint, next_viewpoint,
                                                    self.gaussians, self.background)

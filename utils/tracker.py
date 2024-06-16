@@ -6,7 +6,6 @@ import imageio
 import numpy as np
 from typing import List
 
-from utils.pose import update_pose
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
 from utils.event_camera.event import EventFrame, EventArray
@@ -111,7 +110,7 @@ class Tracker:
 
                 with torch.no_grad():
                     optimizer.step()
-                    converged = update_pose(self.viewpoint, self.converged_threshold)
+                    converged = self.viewpoint.update_vwRT(self.converged_threshold)
                     optimizer.zero_grad()
 
                 if frame_idx == 0 and optim_iter == 0:
@@ -129,12 +128,9 @@ class Tracker:
             print(f"optim_iter:\t{optim_iter}")
             print(f"opt_time:\t{opt_time:.4f}")
             print(f"delta_tau:\t{delta_tau:.4f}")
+            print(f"angular_vel:\t{self.viewpoint.angular_vel}")
+            print(f"linear_vel:\t{self.viewpoint.linear_vel}")
             print("="*20)
-
-            if frame_idx != 0:
-                self.viewpoint.update_velocity((delta_tau + last_delta_tau) / 2)
-            # print(f"angular_vel: {self.viewpoint.angular_vel}")
-            # print(f"linear_vel: {self.viewpoint.linear_vel}")
 
             last_delta_tau = delta_tau
             last_imgs.append(img)
