@@ -78,16 +78,16 @@ class Tracker:
             overlay_imgs = []
             opt_params = []
             opt_params.append({"params": [self.viewpoint.cam_rot_delta],
-                            "lr": self.config["Optimizer"]["cam_rot_delta"]})
+                               "lr": self.config["Optimizer"]["cam_rot_delta"]})
 
             opt_params.append({"params": [self.viewpoint.cam_trans_delta],
-                            "lr": self.config["Optimizer"]["cam_trans_delta"]})
+                               "lr": self.config["Optimizer"]["cam_trans_delta"]})
 
-            # opt_params.append({"params": [self.viewpoint.cam_w_delta],
-            #                 "lr": self.config["Optimizer"]["cam_w_delta"]})
+            opt_params.append({"params": [self.viewpoint.cam_w_delta],
+                                "lr": self.config["Optimizer"]["cam_w_delta"]})
 
-            # opt_params.append({"params": [self.viewpoint.cam_v_delta],
-            #                 "lr": self.config["Optimizer"]["cam_v_delta"]})
+            opt_params.append({"params": [self.viewpoint.cam_v_delta],
+                               "lr": self.config["Optimizer"]["cam_v_delta"]})
 
             optimizer = torch.optim.Adam(opt_params)
 

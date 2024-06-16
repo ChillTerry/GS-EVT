@@ -94,7 +94,7 @@ class Camera(nn.Module):
 
     @property
     def last_vel_transform_inv(self):
-        return torch.linalg.inv(self.last_vel_transform())
+        return torch.linalg.inv(self.last_vel_transform)
 
     @property
     def next_vel_transform(self):
@@ -104,7 +104,7 @@ class Camera(nn.Module):
 
     @property
     def next_vel_transform_inv(self):
-        return torch.linalg.inv(self.next_vel_transform())
+        return torch.linalg.inv(self.next_vel_transform)
 
     @property
     def curr_pose(self):

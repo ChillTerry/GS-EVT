@@ -185,8 +185,12 @@ def render2(
         pass
 
     # Set up rasterization configuration
-    last_rasterizer = build_rasterizer(last_viewpoint_camera, pc, bg_color, scaling_modifier)
-    next_rasterizer = build_rasterizer(next_viewpoint_camera, pc, bg_color, scaling_modifier)
+    last_vel_transofrm = curr_viewpoint_camera.last_vel_transform.t()
+    last_vel_transofrm_inv = curr_viewpoint_camera.last_vel_transform_inv.t()
+    next_vel_transofrm = curr_viewpoint_camera.next_vel_transform.t()
+    next_vel_transofrm_inv = curr_viewpoint_camera.next_vel_transform_inv.t()
+    last_rasterizer = build_rasterizer(last_viewpoint_camera, last_vel_transofrm, last_vel_transofrm_inv, pc, bg_color, scaling_modifier)
+    next_rasterizer = build_rasterizer(next_viewpoint_camera, next_vel_transofrm, next_vel_transofrm_inv, pc, bg_color, scaling_modifier)
 
     means3D = pc.get_xyz
     means2D = screenspace_points
@@ -214,15 +218,17 @@ def render2(
 
     theta = curr_viewpoint_camera.cam_rot_delta
     rho = curr_viewpoint_camera.cam_trans_delta
+    w = curr_viewpoint_camera.cam_w_delta
+    v = curr_viewpoint_camera.cam_v_delta
     last_render_pkg = run_rasterizer(last_rasterizer, mask, means3D, means2D, shs, colors_precomp,
-                                     opacity, scales, rotations, cov3D_precomp, theta, rho)
+                                     opacity, scales, rotations, cov3D_precomp, theta, rho, w, v)
     next_render_pkg = run_rasterizer(next_rasterizer, mask, means3D, means2D, shs, colors_precomp,
-                                     opacity, scales, rotations, cov3D_precomp, theta, rho)
+                                     opacity, scales, rotations, cov3D_precomp, theta, rho, w, v)
 
     return last_render_pkg, next_render_pkg
 
 
-def build_rasterizer(viewpoint_camera, pc, bg_color, scaling_modifier):
+def build_rasterizer(viewpoint_camera, vel_transofrm, vel_transofrm_inv, pc, bg_color, scaling_modifier):
     # Set up rasterization configuration
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
@@ -240,6 +246,11 @@ def build_rasterizer(viewpoint_camera, pc, bg_color, scaling_modifier):
         sh_degree=pc.active_sh_degree,
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
+        angular_vel=viewpoint_camera.angular_vel,
+        linear_vel=viewpoint_camera.linear_vel,
+        vel_transofrm=vel_transofrm,
+        vel_transofrm_inv=vel_transofrm_inv,
+        delta_time=viewpoint_camera.delta_tau,
         debug=False,
     )
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -247,7 +258,7 @@ def build_rasterizer(viewpoint_camera, pc, bg_color, scaling_modifier):
 
 
 def run_rasterizer(rasterizer, mask, means3D, means2D, shs, colors_precomp,
-                   opacity, scales, rotations, cov3D_precomp, theta, rho):
+                   opacity, scales, rotations, cov3D_precomp, theta, rho, w, v):
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     n_touched = None
     if mask is not None:
@@ -262,6 +273,8 @@ def run_rasterizer(rasterizer, mask, means3D, means2D, shs, colors_precomp,
             cov3D_precomp=cov3D_precomp[mask] if cov3D_precomp is not None else None,
             theta=theta,
             rho=rho,
+            w=w,
+            v=v,
         )
     else:
         rendered_image, radii, depth, opacity, n_touched = rasterizer(
@@ -275,6 +288,8 @@ def run_rasterizer(rasterizer, mask, means3D, means2D, shs, colors_precomp,
             cov3D_precomp=cov3D_precomp,
             theta=theta,
             rho=rho,
+            w=w,
+            v=v,
         )
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
