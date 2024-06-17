@@ -52,5 +52,5 @@ Optimizer:
   converged_threshold: 0.0002
   cam_rot_delta: 0.003
   cam_trans_delta: 0.001
-  cam_w_delta: 0.00001
-  cam_v_delta: 0.00001
+  cam_w_delta: 0.00000001
+  cam_v_delta: 0.0000001
