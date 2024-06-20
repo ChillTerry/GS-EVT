@@ -83,7 +83,7 @@ class Tracker:
                                "lr": self.config["Optimizer"]["cam_trans_delta"]})
 
             opt_params.append({"params": [self.viewpoint.cam_w_delta],
-                                "lr": self.config["Optimizer"]["cam_w_delta"]})
+                               "lr": self.config["Optimizer"]["cam_w_delta"]})
 
             opt_params.append({"params": [self.viewpoint.cam_v_delta],
                                "lr": self.config["Optimizer"]["cam_v_delta"]})
@@ -101,7 +101,21 @@ class Tracker:
 
             optim_iter = 0
             opt_start_time = time.time()
+            start_vel_opt_iter = 50
             while True:
+                if optim_iter == start_vel_opt_iter:
+                        print("-"*30)
+                if optim_iter >= start_vel_opt_iter:
+                    self.viewpoint.cam_w_delta.requires_grad_(True)
+                    self.viewpoint.cam_v_delta.requires_grad_(True)
+                    self.viewpoint.cam_rot_delta.requires_grad_(False)
+                    self.viewpoint.cam_trans_delta.requires_grad_(False)
+                else:
+                    self.viewpoint.cam_w_delta.requires_grad_(False)
+                    self.viewpoint.cam_v_delta.requires_grad_(False)
+                    self.viewpoint.cam_rot_delta.requires_grad_(True)
+                    self.viewpoint.cam_trans_delta.requires_grad_(True)
+                print(self.viewpoint.cam_v_delta.requires_grad)
                 rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
                 delta_Ir = rFrame.get_delta_Ir()
 
@@ -110,7 +124,16 @@ class Tracker:
 
                 with torch.no_grad():
                     optimizer.step()
-                    converged = self.viewpoint.update_vwRT(self.converged_threshold)
+                    if optim_iter <= start_vel_opt_iter:
+                        converged = self.viewpoint.update_pose(self.converged_threshold)
+                        print(f"w_delta:\t{self.viewpoint.cam_w_delta.data}")
+                        print(f"v_delta:\t{self.viewpoint.cam_v_delta.data}")
+                        self.viewpoint.cam_w_delta.data.fill_(0)
+                        self.viewpoint.cam_v_delta.data.fill_(0)
+                    else:
+                        converged = self.viewpoint.update_velocity()
+                        self.viewpoint.cam_w_delta.data.fill_(0)
+                        self.viewpoint.cam_v_delta.data.fill_(0)
                     optimizer.zero_grad()
 
                 if frame_idx == 0 and optim_iter == 0:
@@ -122,6 +145,7 @@ class Tracker:
                 optim_iter += 1
                 if converged or optim_iter >= self.max_optim_iter:
                     break
+                # print(f"loss:\t{loss}")
             opt_end_time = time.time()
             opt_time = opt_end_time - opt_start_time
             print(f"frame_idx:\t{frame_idx}")

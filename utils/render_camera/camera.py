@@ -60,10 +60,12 @@ class Camera(nn.Module):
         self.delta_tau = delta_tau
 
         # For fine-tuning the camera pose
-        self.cam_rot_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
-        self.cam_trans_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
-        self.cam_w_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
-        self.cam_v_delta = nn.Parameter(torch.zeros(3, requires_grad=True, device=self.device))
+        self.cam_rot_delta = nn.Parameter(torch.zeros(3, device=self.device), requires_grad=True)
+        self.cam_trans_delta = nn.Parameter(torch.zeros(3, device=self.device), requires_grad=True)
+        self.cam_w_delta = nn.Parameter(torch.zeros(3, device=self.device), requires_grad=False)
+        self.cam_v_delta = nn.Parameter(torch.zeros(3, device=self.device), requires_grad=False)
+        # print(self.cam_v_delta.requires_grad)
+        # print("+++++++++")
 
     @property
     def projection_matrix(self):

@@ -189,8 +189,12 @@ def render2(
     last_vel_transofrm_inv = curr_viewpoint_camera.last_vel_transform_inv.t()
     next_vel_transofrm = curr_viewpoint_camera.next_vel_transform.t()
     next_vel_transofrm_inv = curr_viewpoint_camera.next_vel_transform_inv.t()
-    last_rasterizer = build_rasterizer(last_viewpoint_camera, last_vel_transofrm, last_vel_transofrm_inv, pc, bg_color, scaling_modifier)
-    next_rasterizer = build_rasterizer(next_viewpoint_camera, next_vel_transofrm, next_vel_transofrm_inv, pc, bg_color, scaling_modifier)
+    last_delta_time = -curr_viewpoint_camera.delta_tau/ 2
+    next_delta_time = curr_viewpoint_camera.delta_tau / 2
+    last_rasterizer = build_rasterizer(last_viewpoint_camera, last_vel_transofrm, last_vel_transofrm_inv,
+                                       last_delta_time, pc, bg_color, scaling_modifier)
+    next_rasterizer = build_rasterizer(next_viewpoint_camera, next_vel_transofrm, next_vel_transofrm_inv,
+                                       next_delta_time, pc, bg_color, scaling_modifier)
 
     means3D = pc.get_xyz
     means2D = screenspace_points
@@ -228,7 +232,7 @@ def render2(
     return last_render_pkg, next_render_pkg
 
 
-def build_rasterizer(viewpoint_camera, vel_transofrm, vel_transofrm_inv, pc, bg_color, scaling_modifier):
+def build_rasterizer(viewpoint_camera, vel_transofrm, vel_transofrm_inv, delta_time, pc, bg_color, scaling_modifier):
     # Set up rasterization configuration
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
@@ -250,7 +254,7 @@ def build_rasterizer(viewpoint_camera, vel_transofrm, vel_transofrm_inv, pc, bg_
         linear_vel=viewpoint_camera.linear_vel,
         vel_transofrm=vel_transofrm,
         vel_transofrm_inv=vel_transofrm_inv,
-        delta_time=viewpoint_camera.delta_tau,
+        delta_time=delta_time,
         debug=False,
     )
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
