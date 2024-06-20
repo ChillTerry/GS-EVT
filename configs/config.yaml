@@ -48,9 +48,9 @@ Tracking:
     linear_vel: [-0.80285077, -0.35492166,  0.0134317]
 
 Optimizer:
-  max_optim_iter: 100
-  converged_threshold: 0.0002
+  max_optim_iter: 200
+  converged_threshold: 0.0001
   cam_rot_delta: 0.003
   cam_trans_delta: 0.001
-  cam_w_delta: 0.005
-  cam_v_delta: 0.005
+  cam_w_delta: 0.00001
+  cam_v_delta: 0.0001

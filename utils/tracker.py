@@ -101,21 +101,18 @@ class Tracker:
 
             optim_iter = 0
             opt_start_time = time.time()
-            start_vel_opt_iter = 50
+            start_vel_opt_iter = self.max_optim_iter / 2
             while True:
-                if optim_iter == start_vel_opt_iter:
-                        print("-"*30)
-                if optim_iter >= start_vel_opt_iter:
-                    self.viewpoint.cam_w_delta.requires_grad_(True)
-                    self.viewpoint.cam_v_delta.requires_grad_(True)
-                    self.viewpoint.cam_rot_delta.requires_grad_(False)
-                    self.viewpoint.cam_trans_delta.requires_grad_(False)
-                else:
+                if optim_iter < start_vel_opt_iter:
                     self.viewpoint.cam_w_delta.requires_grad_(False)
                     self.viewpoint.cam_v_delta.requires_grad_(False)
-                    self.viewpoint.cam_rot_delta.requires_grad_(True)
-                    self.viewpoint.cam_trans_delta.requires_grad_(True)
-                print(self.viewpoint.cam_v_delta.requires_grad)
+                    # self.viewpoint.cam_rot_delta.requires_grad_(True)
+                    # self.viewpoint.cam_trans_delta.requires_grad_(True)
+                else:
+                    self.viewpoint.cam_w_delta.requires_grad_(True)
+                    self.viewpoint.cam_v_delta.requires_grad_(True)
+                    # self.viewpoint.cam_rot_delta.requires_grad_(False)
+                    # self.viewpoint.cam_trans_delta.requires_grad_(False)
                 rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
                 delta_Ir = rFrame.get_delta_Ir()
 
@@ -126,14 +123,10 @@ class Tracker:
                     optimizer.step()
                     if optim_iter <= start_vel_opt_iter:
                         converged = self.viewpoint.update_pose(self.converged_threshold)
-                        print(f"w_delta:\t{self.viewpoint.cam_w_delta.data}")
-                        print(f"v_delta:\t{self.viewpoint.cam_v_delta.data}")
                         self.viewpoint.cam_w_delta.data.fill_(0)
                         self.viewpoint.cam_v_delta.data.fill_(0)
                     else:
-                        converged = self.viewpoint.update_velocity()
-                        self.viewpoint.cam_w_delta.data.fill_(0)
-                        self.viewpoint.cam_v_delta.data.fill_(0)
+                        converged = self.viewpoint.update_vwRT(self.converged_threshold)
                     optimizer.zero_grad()
 
                 if frame_idx == 0 and optim_iter == 0:
