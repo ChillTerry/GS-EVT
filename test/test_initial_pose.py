@@ -39,7 +39,7 @@ def test_intensity_change(config_path):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="configuration parameters")
-    parser.add_argument("--config_path", "-c", type=str, default="./configs/BIG_BOARD/down2up_config.yaml")
+    parser.add_argument("--config_path", "-c", type=str, default="./configs/VECTOR/desk_normal1_config.yaml")
     args = parser.parse_args(sys.argv[1:])
 
     test_intensity_change(args.config_path)

@@ -179,8 +179,8 @@ class Camera(nn.Module):
 
     @staticmethod
     def init_from_yaml(config):
-        img_width = config["Event"]["img_width"]
-        img_height = config["Event"]["img_height"]
+        img_width = config["Gaussian"]["img_width"]
+        img_height = config["Gaussian"]["img_height"]
         device = config["Gaussian"]["model_params"]["device"]
         calib_params = munchify(config["Gaussian"]["calib_params"])
         R = torch.tensor(config["Tracking"]["initial_pose"]["rot"]["data"]).reshape(3, 3)

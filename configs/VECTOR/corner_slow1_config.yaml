@@ -7,8 +7,8 @@ Event:
   - 0.00397014
   - 0.16977825
   filter_threshold: 0.1
-  img_height: 480
-  img_width: 640
+  img_height: 1149
+  img_width: 1463
   intrinsic:
     cols: 3
     data:
@@ -54,7 +54,7 @@ Tracking:
       - 0.99892939
       - -0.01565589
       - -0.04353129
-      - 0.0315167
+      - 0.03151670
       - 0.91914409
       - 0.39265867
       - 0.03386411

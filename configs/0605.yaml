@@ -12,6 +12,8 @@ Gaussian:
   calib_params:
     fx: 297.12615307315787
     fy: 321.45829020390386
+  img_width: 346
+  img_height: 260
 
 Event:
   data_path: "./data/0605/events.txt"

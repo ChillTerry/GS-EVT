@@ -6,6 +6,8 @@ from utils.render_camera.camera import Camera
 from gaussian_splatting.gaussian_renderer import render1, render2
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 
+import cv2
+import numpy as np
 
 def get_intensity_frame(color_frame):
     weights = torch.tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
@@ -13,6 +15,12 @@ def get_intensity_frame(color_frame):
     intensity_frame = (color_frame * weights).sum(dim=1)
     return intensity_frame
 
+def resize_image(image):
+    image = image.detach().cpu().squeeze(0).numpy()
+    new_size = (640, 480)
+    resized_image = cv2.resize(image, new_size)
+    resized_image = torch.from_numpy(resized_image).unsqueeze(0)
+    return resized_image
 
 class RenderFrame:
     """
@@ -33,7 +41,8 @@ class RenderFrame:
     def intensity_frame(self):
         rendering = render1(self.viewpoint, self.gaussians, self.background)
         color_frame = rendering["render"]
-        return get_intensity_frame(color_frame)
+        intensity_frame = get_intensity_frame(color_frame)
+        return resize_image(intensity_frame)
 
     def get_grad_frame(self):
         sobel_x_kernel = torch.tensor([[-1., 0., 1.],

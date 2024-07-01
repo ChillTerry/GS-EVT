@@ -55,7 +55,6 @@ import subprocess
 		
 # config_command = "unset LD_LIBRARY_PATH"
 # subprocess.run(config_command, shell=True, check=True)
-
 ##-------------------------------------------------------train gaussian splatting for all sequence----------------------------------------------------------
 # for folder in folders:
 # 		train_cmd = f"python {os.path.join(gaussian_splatting_path, 'train.py')} -s {os.path.join(gaussian_splatting_data_path, folder)} -m {os.path.join(gaussian_splatting_path, 'output', folder)}"
