@@ -152,6 +152,84 @@ def render(
         "n_touched": n_touched,
     }
 
+def render1(
+    curr_viewpoint_camera,
+    pc: GaussianModel,
+    bg_color: torch.Tensor,
+    scaling_modifier=1.0,
+    override_color=None,
+    mask=None,
+):
+    """
+    Render the scene.
+
+    Background tensor (bg_color) must be on GPU!
+    """
+
+    # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
+    if pc.get_xyz.shape[0] == 0:
+        return None
+
+    screenspace_points = (
+        torch.zeros_like(
+            pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda"
+        )
+        + 0
+    )
+    try:
+        screenspace_points.retain_grad()
+    except Exception:
+        pass
+
+    # Set up rasterization configuration
+    last_vel_transofrm = curr_viewpoint_camera.last_vel_transform.t()
+    device = last_vel_transofrm.device
+    dtype = last_vel_transofrm.dtype
+    T = torch.eye(4, device=device, dtype=dtype)
+    R = torch.eye(3, device=device, dtype=dtype)
+    t = torch.zeros(3, 1, device=device, dtype=dtype)
+    T[:3, :3] = R
+    T[:3, 3] = t.squeeze(1)
+    curr_vel_transfrm = T
+    curr_vel_transfrm_inv = T
+
+    curr_delta_time = 0
+    curr_rasterizer = build_rasterizer(curr_viewpoint_camera, curr_vel_transfrm, curr_vel_transfrm_inv,
+                                       curr_delta_time, pc, bg_color, scaling_modifier)
+
+    means3D = pc.get_xyz
+    means2D = screenspace_points
+    opacity = pc.get_opacity
+
+    # Since the 3D gaussian splatting map has been already built up, we directly use the precomputed 3d covariance.
+    scales = None
+    rotations = None
+    cov3D_precomp = None
+
+    # check if the covariance is isotropic
+    if pc.get_scaling.shape[-1] == 1:
+        scales = pc.get_scaling.repeat(1, 3)
+    else:
+        scales = pc.get_scaling
+    rotations = pc.get_rotation
+
+    # Since the 3D gaussian splatting map has been already built up, we directly use the precomputed colors.
+    shs = None
+    colors_precomp = None
+    if colors_precomp is None:
+        shs = pc.get_features
+    else:
+        colors_precomp = override_color
+
+    theta = curr_viewpoint_camera.cam_rot_delta
+    rho = curr_viewpoint_camera.cam_trans_delta
+    w = curr_viewpoint_camera.cam_w_delta
+    v = curr_viewpoint_camera.cam_v_delta
+    curr_render_pkg = run_rasterizer(curr_rasterizer, mask, means3D, means2D, shs, colors_precomp,
+                                     opacity, scales, rotations, cov3D_precomp, theta, rho, w, v)
+
+    return curr_render_pkg
+
 
 def render2(
     last_viewpoint_camera,

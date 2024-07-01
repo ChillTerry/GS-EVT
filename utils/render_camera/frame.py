@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 from utils.pose import SE3_exp
 from utils.render_camera.camera import Camera
-from gaussian_splatting.gaussian_renderer import render, render2
+from gaussian_splatting.gaussian_renderer import render1, render2
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 
 
@@ -26,12 +26,12 @@ class RenderFrame:
         self.background = background
 
     def render(self):
-        render_pkg = render(self.viewpoint, self.gaussians, self.pipeline, self.background)
+        render_pkg = render1(self.viewpoint, self.gaussians, self.background)
         return render_pkg
 
     @property
     def intensity_frame(self):
-        rendering = render(self.viewpoint, self.gaussians, self.pipeline, self.background)
+        rendering = render1(self.viewpoint, self.gaussians, self.background)
         color_frame = rendering["render"]
         return get_intensity_frame(color_frame)
 
