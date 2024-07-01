@@ -1,0 +1,81 @@
+Event:
+  data_path: /home/liutao/JYA/GS-EVT/data/VECTOR/desk_normal1/events.txt
+  distortion_factors:
+  - -0.39712487
+  - 0.2030699
+  - 0.00073509
+  - 0.00397014
+  - 0.16977825
+  filter_threshold: 0.1
+  img_height: 480
+  img_width: 640
+  intrinsic:
+    cols: 3
+    data:
+    - 327.32749
+    - 0.0
+    - 304.97749
+    - 0.0
+    - 327.46184
+    - 235.37621
+    - 0.0
+    - 0.0
+    - 1.0
+    dt: d
+    rows: 3
+  max_events_per_frame: 30000
+Gaussian:
+  calib_params:
+    fx: 896.998423571008
+    fy: 896.8807793479773
+  model_params:
+    background:
+    - 0
+    - 0
+    - 0
+    device: cuda
+    model_path: /home/liutao/JYA/GS-EVT/data/VECTOR/desk_normal1/point_cloud.ply
+    sh_degree: 3
+  pipeline_params:
+    compute_cov3D_python: false
+    convert_SHs_python: false
+Optimizer:
+  cam_rot_delta: 0.003
+  cam_trans_delta: 0.001
+  cam_v_delta: 0.0001
+  cam_w_delta: 1.0e-05
+  converged_threshold: 0.0001
+  max_optim_iter: 200
+Tracking:
+  initial_pose:
+    rot:
+      cols: 3
+      data:
+      - 0.9630418730002805
+      - 0.13251499673636902
+      - -0.23449973664819257
+      - -0.14902195073664334
+      - 0.9873555281546833
+      - -0.054051079739737044
+      - 0.22437203267510186
+      - 0.08699906127278667
+      - 0.9706123604667811
+      dt: d
+      rows: 3
+    trans:
+      cols: 1
+      data:
+      - -4.020101133325891
+      - 2.05468358179187
+      - -1.3932968244804422
+      dt: d
+      rows: 3
+  initial_vel:
+    angular_vel:
+    - -0.07911462
+    - -0.03913723
+    - 0.12094993
+    linear_vel:
+    - 3.06952551
+    - -0.19708658
+    - 1.45889706

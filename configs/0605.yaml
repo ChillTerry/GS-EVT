@@ -1,0 +1,56 @@
+Gaussian:
+  model_params:
+    model_path: "./data/0605/point_cloud.ply"
+    background: [0, 0, 0]
+    device: "cuda"
+    sh_degree: 3
+
+  pipeline_params:
+    convert_SHs_python: False
+    compute_cov3D_python: False
+
+  calib_params:
+    fx: 297.12615307315787
+    fy: 321.45829020390386
+
+Event:
+  data_path: "./data/0605/events.txt"
+  max_events_per_frame: 30000
+  filter_threshold: 0.1
+  img_width: 346
+  img_height: 260
+  intrinsic:
+    rows: 3
+    cols: 3
+    dt: "d"
+    data: [ 304.36966557,   0      , 176.72474058,
+            0        , 304.46107972, 133.12250132,
+            0        ,   0        ,   1        ]
+  distortion_factors: [-0.39712487,  0.2030699 ,  0.00073509,  0.00397014,  0.16977825]
+
+Tracking:
+  initial_pose:
+    rot:
+      rows: 3
+      cols: 3
+      dt: "d"
+      data: [ 0.98657657,  0.04369101,  0.15734604,
+            -0.0402753,   0.99887998, -0.02483318,
+            -0.1582548,   0.01816268,  0.98723125]
+    trans:
+      rows: 3
+      cols: 1
+      dt: "d"
+      data: [2.24311095, 2.63636504, 0.70613384]
+
+  initial_vel:
+    angular_vel: [-0.00748658,  0.01953471,  0.00479119]
+    linear_vel: [-0.80285077, -0.35492166,  0.0134317]
+
+Optimizer:
+  max_optim_iter: 200
+  converged_threshold: 0.0001
+  cam_rot_delta: 0.001
+  cam_trans_delta: 0.001
+  cam_w_delta: 0.001
+  cam_v_delta: 0.001
