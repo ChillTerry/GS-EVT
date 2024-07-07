@@ -41,7 +41,12 @@ def overlay_img(delta_Ir, delta_Ie, id=None):
 
 def tracking_loss(delta_Ir, delta_Ie):
     return torch.norm((delta_Ir - delta_Ie))
+    
+def ksi_loss(rot, trans):
+    return 1 * torch.norm(rot) + 1 * torch.norm(trans)
 
+def vel_loss(rot, trans):
+    return 1 * torch.norm(rot) + 1 * torch.norm(trans)
 
 class Tracker:
     def __init__(self,
@@ -117,6 +122,10 @@ class Tracker:
                 delta_Ir = rFrame.get_delta_Ir()
 
                 loss = tracking_loss(delta_Ir, delta_Ie)
+                # if optim_iter < start_vel_opt_iter:
+                #     loss = ksi_loss(self.viewpoint.cam_rot_delta, self.viewpoint.cam_trans_delta) + tracking_loss(delta_Ir, delta_Ie)
+                # else:
+                #     loss = ksi_loss(self.viewpoint.cam_rot_delta, self.viewpoint.cam_trans_delta) + tracking_loss(delta_Ir, delta_Ie) + vel_loss(self.viewpoint.cam_w_delta + self.viewpoint.cam_v_delta)
                 loss.backward()
 
                 with torch.no_grad():
@@ -153,11 +162,11 @@ class Tracker:
             last_imgs.append(img)
 
             imageio.mimsave(os.path.join("./results/gif_frames", f'tracking_frame{frame_idx}.gif'),
-                            overlay_imgs, 'GIF', duration=0.1)
+                            overlay_imgs, 'GIF', duration=0.1, loop=0)
 
             frame_idx += 1
             if frame_idx >= len(self.event_arrays):
                 break
 
         imageio.mimsave(os.path.join("./results", f'multi_frame_tracking.gif'),
-                        last_imgs, 'GIF', duration=0.5)
+                        last_imgs, 'GIF', duration=0.5, loop=0)

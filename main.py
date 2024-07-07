@@ -32,7 +32,7 @@ def main(config_path):
 
     # Setup camera (viewpoint)
     viewpoint = Camera.init_from_yaml(config)
-    # viewpoint.T += 0.2
+    # viewpoint.T += 0.3
     # viewpoint.R += 0.015
 
     # Setup gaussian model
@@ -50,7 +50,8 @@ def main(config_path):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="configuration parameters")
-    parser.add_argument("--config_path", "-c", type=str, default="./configs/config.yaml")
+    # parser.add_argument("--config_path", "-c", type=str, default="./configs/0605.yaml")
+    parser.add_argument("--config_path", "-c", type=str, default="./configs/VECTOR/desk_normal1_config.yaml")
     args = parser.parse_args(sys.argv[1:])
 
     main(args.config_path)

@@ -31,7 +31,8 @@ def test_intensity_change(config_path):
     gaussians.load_ply(model_params.model_path)
 
     rFrame = RenderFrame(viewpoint, gaussians, pipeline, background)
-    delta_Ir = rFrame.render()["render"]
+    # delta_Ir = rFrame.render()["render"]
+    delta_Ir = rFrame.intensity_frame
 
     results_path = os.path.join(BASE_DIR, "results")
     torchvision.utils.save_image(delta_Ir, os.path.join(results_path, "initial_view.png"))

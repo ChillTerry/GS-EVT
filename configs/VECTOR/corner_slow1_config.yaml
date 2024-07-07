@@ -39,6 +39,8 @@ Gaussian:
   pipeline_params:
     compute_cov3D_python: false
     convert_SHs_python: false
+  img_height: 1149
+  img_width: 1463
 Optimizer:
   cam_rot_delta: 0.003
   cam_trans_delta: 0.001
