@@ -78,7 +78,11 @@ class RenderFrame:
         last_intensity_frame = get_intensity_frame(last_render_pkg["render"])
         next_intensity_frame = get_intensity_frame(next_render_pkg["render"])
         delta_Ir = next_intensity_frame - last_intensity_frame
-
+        # epsilon = 1e-3
+        # last_intensity_frame[last_intensity_frame < epsilon] = epsilon
+        # next_intensity_frame[next_intensity_frame < epsilon] = epsilon
+        # delta_Ir = torch.log(next_intensity_frame / last_intensity_frame)
+        
         max_val = delta_Ir.max()
         min_val = delta_Ir.min()
         abs_max_val = max(max_val, torch.abs(min_val))
