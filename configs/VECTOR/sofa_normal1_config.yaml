@@ -1,5 +1,5 @@
 Event:
-  data_path: /home/liutao/data/VECTOR/sofa_normal1/events.txt
+  data_path: ./data/VECTOR/sofa_normal1/events.txt
   distortion_factors:
   - -0.031982
   - 0.041966
@@ -35,7 +35,7 @@ Gaussian:
     - 0
     - 0
     device: cuda
-    model_path: /home/liutao/data/VECTOR/sofa_normal1/point_cloud.ply
+    model_path: ./data/VECTOR/sofa_normal1/point_cloud.ply
     sh_degree: 3
   pipeline_params:
     compute_cov3D_python: false
@@ -84,4 +84,4 @@ Tracking:
     - 0.11414605
     - 0.00285491
     - -0.19478575
-  save_path: /home/liutao/Project/GS-EVT/results/sofa_normal1
+  save_path: ./results/sofa_normal1

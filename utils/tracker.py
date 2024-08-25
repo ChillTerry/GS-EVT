@@ -127,11 +127,16 @@ class Tracker:
             opt_params.append({"params": [self.viewpoint.cam_v_delta],
                                "lr": self.config["Optimizer"]["cam_v_delta"]})
             optimizer = torch.optim.Adam(opt_params)
-            last_pose = copy.deepcopy([self.viewpoint.T.detach(), self.viewpoint.R.detach()])
 
             delta_tau = self.event_arrays[frame_idx].duration()
             self.viewpoint.delta_tau = delta_tau
             self.viewpoint.const_vel_model((delta_tau + last_delta_tau) / 2)
+
+            # before optimizing, backup the initial status
+            curr_initial_status = copy.deepcopy([self.viewpoint.T.detach(),
+                                                 self.viewpoint.R.detach(),
+                                                 self.viewpoint.angular_vel.detach(),
+                                                 self.viewpoint.linear_vel.detach()])
 
             self.log.info(f"frame_idx:\t{frame_idx} / {total_frame_nums}")
             self.log.info(f"delta_tau:\t{delta_tau:.4f}")
@@ -242,7 +247,7 @@ class Tracker:
 
             # mix the optimized vel and vel calculated from const vel model
             if frame_idx >= 5:  # give it some warm up frames. e.g.:5
-                self.viewpoint.cal_weighted_velocity(last_pose, (delta_tau + last_delta_tau) / 2, 0.5)
+                self.viewpoint.cal_weighted_velocity(curr_initial_status[:2], (delta_tau + last_delta_tau) / 2, 0.5)
             last_delta_tau = delta_tau
 
             self.log.debug(f"angular_vel:\t{self.viewpoint.angular_vel}")
@@ -276,7 +281,7 @@ class Tracker:
         img_dir = f"{self.save_path}/tracking_frames"
         video_save_path = f"{self.save_path}/tracking_video.mp4"
         gif_save_path = f"{self.save_path}/tracking_video.gif"
-        save_video(img_dir, video_save_path, fps=100)
-        save_gif(img_dir, gif_save_path, duration=10)
+        save_video(img_dir, video_save_path, fps=120)
+        save_gif(img_dir, gif_save_path, duration=2)
         self.log.info(f"save video in: {video_save_path}")
         self.log.info(f"save gif in  : {gif_save_path}")
