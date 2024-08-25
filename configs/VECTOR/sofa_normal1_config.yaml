@@ -1,5 +1,5 @@
 Event:
-  data_path: /home/liutao/data/VECTOR/robot_normal1/events.txt
+  data_path: /home/liutao/data/VECTOR/sofa_normal1/events.txt
   distortion_factors:
   - -0.031982
   - 0.041966
@@ -35,7 +35,7 @@ Gaussian:
     - 0
     - 0
     device: cuda
-    model_path: /home/liutao/data/VECTOR/robot_normal1/point_cloud.ply
+    model_path: /home/liutao/data/VECTOR/sofa_normal1/point_cloud.ply
     sh_degree: 3
   pipeline_params:
     compute_cov3D_python: false
@@ -56,23 +56,23 @@ Tracking:
     rot:
       cols: 3
       data:
-      - 0.98161380
-      - -0.00045487
-      - 0.19087728
-      - -0.02444478
-      - 0.99146338
-      - 0.12807349
-      - -0.18930609
-      - -0.13038466
-      - 0.97322302
+      - 0.93992945
+      - -0.20821672
+      - 0.27051511
+      - 0.21811915
+      - 0.97589900
+      - -0.00672095
+      - -0.26259602
+      - 0.06532174
+      - 0.96269227
       dt: d
       rows: 3
     trans:
       cols: 1
       data:
-      - -4.80009293
-      - -0.70624608
-      - 2.88821495
+      - 5.94459200
+      - 1.47922790
+      - -0.65842646
       dt: d
       rows: 3
   initial_vel:
@@ -84,4 +84,4 @@ Tracking:
     - 0.11414605
     - 0.00285491
     - -0.19478575
-  save_path: /home/liutao/Project/GS-EVT/results/robot_normal1
+  save_path: /home/liutao/Project/GS-EVT/results/sofa_normal1

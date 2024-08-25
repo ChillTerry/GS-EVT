@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from munch import munchify
 
-from utils.pose import SE3_exp
+from utils.pose import SE3_exp, SO3_log
 from gaussian_splatting.utils.graphics_utils import getWorld2View2, getProjectionMatrix, focal2fov
 
 
@@ -121,13 +121,16 @@ class Camera(nn.Module):
         rot_vec = self.angular_vel * (self.delta_tau / 2)
         trans_vec = self.linear_vel * (self.delta_tau / 2)
         return rot_vec, trans_vec
+    
+    def update_RT(self, R, t):
+        self.R = R.to(device=self.device)
+        self.T = t.to(device=self.device)
 
-    def update_vwRT(self, converged_threshold):
+    def update_vwRT(self):
         self.update_velocity()
-        converged = self.update_pose(converged_threshold)
-        return converged
+        self.update_pose()
 
-    def update_pose(self, converged_threshold=5e-4):
+    def update_pose(self):
         deltaT = torch.cat([self.cam_trans_delta, self.cam_rot_delta], axis=0)
 
         T_w2c = torch.eye(4, device=self.device)
@@ -138,12 +141,10 @@ class Camera(nn.Module):
         new_R = new_w2c[0:3, 0:3]
         new_T = new_w2c[0:3, 3]
 
-        converged = deltaT.norm() < converged_threshold
         self.update_RT(new_R, new_T)
 
         self.cam_rot_delta.data.fill_(0)
         self.cam_trans_delta.data.fill_(0)
-        return converged
 
     def update_velocity(self):
         self.angular_vel += self.cam_w_delta
@@ -153,9 +154,31 @@ class Camera(nn.Module):
         self.cam_w_delta.data.fill_(0)
         self.cam_v_delta.data.fill_(0)
 
-    def update_RT(self, R, t):
-        self.R = R.to(device=self.device)
-        self.T = t.to(device=self.device)
+    def cal_weighted_velocity(self, last_data, delta_tau, weight):
+        last_T = last_data[0]
+        last_R = last_data[1]
+
+        last_pose = torch.eye(4, device=self.device)
+        last_pose[0:3, 0:3] = last_R
+        last_pose[0:3, 3] = last_T
+
+        curr_pose = torch.eye(4, device=self.device)
+        curr_pose[0:3, 0:3] = self.R.detach()
+        curr_pose[0:3, 3] = self.T.detach()
+
+        delta_pose = curr_pose @ torch.inverse(last_pose)
+        delta_T = delta_pose[0:3, 3]
+        delta_R = delta_pose[0:3, 0:3]
+        delta_rot_vec = SO3_log(delta_R)
+
+        linear_velocity = delta_T / delta_tau
+        angular_velocity = delta_rot_vec / delta_tau
+
+        # print(f"difference of linear velocit{linear_velocity - self.linear_vel}")
+        # print(f"difference of angular velocity{angular_velocity - self.angular_vel}")
+
+        self.linear_vel = weight * linear_velocity + (1 - weight) * self.linear_vel
+        self.angular_vel = weight * angular_velocity + (1 - weight) * self.angular_vel
 
     def const_vel_model(self, tau):
         # predict the estimated next pose according to constant velocity model
@@ -190,5 +213,7 @@ class Camera(nn.Module):
         fovx = focal2fov(calib_params.fx, img_width)
         fovy = focal2fov(calib_params.fy, img_height)
         viewpoint = Camera(R, t, angular_vel, linear_vel, fovx, fovy, img_width, img_height, device=device)
+        viewpoint.fx = calib_params.fx
+        viewpoint.fy = calib_params.fy
         viewpoint.update_pose()
         return viewpoint

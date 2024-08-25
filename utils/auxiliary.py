@@ -1,4 +1,5 @@
 import yaml
+import logging
 
 
 def load_config(path, default_path=None):
@@ -48,3 +49,41 @@ def update_recursive(dict1, dict2):
             update_recursive(dict1[k], v)
         else:
             dict1[k] = v
+
+
+class Logger:
+    def __init__(self, name, log_file, level=logging.DEBUG):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(level)
+
+        # Create file handler to log messages to a file
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(level)
+
+        # Create console handler to log messages to the console
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+
+        # Create a custom formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add handlers to the logger
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
+    def debug(self, msg):
+        self.logger.debug(msg)
+
+    def info(self, msg):
+        self.logger.info(msg)
+
+    def warning(self, msg):
+        self.logger.warning(msg)
+
+    def error(self, msg):
+        self.logger.error(msg)
+
+    def critical(self, msg):
+        self.logger.critical(msg)
