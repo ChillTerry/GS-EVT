@@ -35,6 +35,36 @@ def load_events_from_txt(data_path, max_events_per_frame, array_nums=None, start
     return event_arrays
 
 
+def load_events_from_bag(bag_file, max_events_per_frame, array_nums=None, start_time=None):
+    event_arrays = []
+    event_array = EventArray()
+
+    topic_name = "/prophesee/left/events"
+    with rosbag.Bag(bag_file, 'r') as bag:
+        total_messages = bag.get_message_count(topic_name)
+        for topic, msg, t in tqdm(bag.read_messages(topics=[topic_name]), total=total_messages, desc="Loading Events"):
+            if start_time is not None and t.to_sec() < start_time:
+                continue
+
+            for event_data in msg.events:  # 假设消息类型中有 'events' 字段
+                event = Event(
+                    ts=msg.header.stamp,  # 假设事件时间戳在消息头中
+                    x=event_data.x,
+                    y=event_data.y,
+                    polarity=1 if event_data.polarity else 0
+                )
+                event_array.callback(event)
+
+                if len(event_array.events) >= max_events_per_frame:
+                    event_arrays.append(event_array)
+                    event_array = EventArray()
+
+                    if array_nums is not None and len(event_arrays) >= array_nums:
+                        break
+
+    return event_arrays
+
+
 class Event:
     __slots__ = ['x', 'y', 'ts', 'polarity']  # Using __slots__ for performance
 
