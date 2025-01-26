@@ -2,6 +2,8 @@ import cv2
 import torch
 import numpy as np
 from typing import List
+from tqdm import tqdm
+import rosbag
 
 EVENT_BRIGHTNESS = 1  # Define the brightness increment/decrement for events.
 
@@ -12,8 +14,10 @@ def load_events_from_txt(data_path, max_events_per_frame, array_nums=None, start
     with open(data_path, 'r', encoding='utf-8') as event_file:
         event_array = EventArray()
         event_count = 0
-        
-        for line in event_file:
+
+        lines = event_file.readlines()
+        total_lines = len(lines)
+        for line in tqdm(lines, total=total_lines, desc="Loading events"):
             line_data = [int(item) for item in line.strip().split(' ')]
             event = Event(line_data[1], line_data[2], line_data[0], line_data[3])
             if start_time is not None and np.int(event.ts) < start_time:
