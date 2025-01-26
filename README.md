@@ -10,6 +10,9 @@ cd submodules/diff-gaussian-rasterization/
 pip install -e .
 ```
 
+## How to get the dataset
+We have preprocessed the [VECTOR](https://star-datasets.github.io/vector/) dataset for you, so you can download it [here](https://drive.google.com/drive/folders/1NShkkljDLqleAGy-goFen3K0C102nIo3?usp=drive_link).
+
 ## How to run a sequence
 ```sh
 python main.py -c configs/VECTOR/desk_normal1_config.yaml
