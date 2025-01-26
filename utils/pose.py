@@ -42,7 +42,9 @@ def SO3_exp(theta):
 
 
 def SO3_log(R):
-    theta = torch.acos((torch.trace(R) - 1) / 2.0)
+    theta_angle = (torch.trace(R) - 1) / 2.0
+    theta_angle = torch.clamp(theta_angle, -1., 1.)
+    theta = torch.acos(theta_angle)
     if theta.abs() < 1e-5:
         return torch.zeros(3)
 
