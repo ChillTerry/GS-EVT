@@ -46,7 +46,7 @@ def SO3_log(R):
     theta_angle = torch.clamp(theta_angle, -1., 1.)
     theta = torch.acos(theta_angle)
     if theta.abs() < 1e-5:
-        return torch.zeros(3)
+        return torch.zeros(3, device=R.device)
 
     # Calculate the rotation axis
     axis = torch.tensor([
