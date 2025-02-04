@@ -11,7 +11,7 @@ pip install -e .
 ```
 
 ## How to get the dataset
-We have preprocessed the [VECTOR](https://star-datasets.github.io/vector/) dataset for you, so you can download it [here](https://drive.google.com/drive/folders/1NShkkljDLqleAGy-goFen3K0C102nIo3?usp=drive_link).
+We have preprocessed the [VECTOR](https://star-datasets.github.io/vector/) dataset, so you can download [here](https://drive.google.com/drive/folders/1NShkkljDLqleAGy-goFen3K0C102nIo3?usp=drive_link) and and put it in `./data/VECTOR`.
 
 ## How to run a sequence
 ```sh
@@ -22,9 +22,9 @@ python main.py -c configs/VECTOR/desk_normal1_config.yaml
 ```
 GSEVT
 ├── configs                                 // Store config yamls for each sequence
-├── data                                    // Store data of gs-splat maps and event data(in txt) 
+├── data                                    // Store data of gs-splat maps and event data(in txt)
 ├── gaussian_splatting                      // original gaussian splatting modules
-├── gui                                     // gui 
+├── gui                                     // gui
 ├── results                                 // tracking outputs
 ├── scripts                                 // scripts for debug on server
 │   ├── desk_batch_run.sh
