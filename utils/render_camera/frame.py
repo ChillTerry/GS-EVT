@@ -26,6 +26,12 @@ class RenderFrame:
         intensity_frame = self.get_intensity_frame(color_frame)
         return intensity_frame
 
+    @property
+    def depth_frame(self):
+        rendering = render1(self.viewpoint, self.gaussians, self.background)
+        depth_frame = rendering["depth"]
+        return depth_frame
+
     def render(self):
         render_pkg = render1(self.viewpoint, self.gaussians, self.background)
         return render_pkg
