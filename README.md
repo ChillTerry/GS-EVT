@@ -49,6 +49,9 @@ conda activate GSEVT
 pip install -r requirements.txt
 cd submodules/diff-gaussian-rasterization/
 pip install -e .
+
+# you can also install from yaml
+conda env create -f environment.yml
 ```
 
 ## How to get the dataset
