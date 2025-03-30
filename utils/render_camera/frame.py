@@ -12,23 +12,29 @@ class RenderFrame:
     Frame that rendered by gaussian splatting
     """
 
-    def __init__(self, viewpoint: Camera, gaussians: GaussianModel, pipeline, background, pyramid_level):
+    def __init__(self, viewpoint: Camera, gaussians: GaussianModel, pipeline, background):
         self.viewpoint = viewpoint
         self.gaussians = gaussians
         self.pipeline = pipeline
         self.background = background
-        self.sign_delta_Ir, self.unsign_delta_Ir = self.get_delta_Ir(pyramid_level)
+        self.rendering = None
+
+    def render(self):
+        self.rendering = render1(self.viewpoint, self.gaussians, self.background)
+        
+    def _ensure_rendering(self):
+        if self.rendering is None:
+            self.render()
 
     @property
     def intensity_frame(self):
-        rendering = render1(self.viewpoint, self.gaussians, self.background)
-        color_frame = rendering["render"]
-        intensity_frame = self.get_intensity_frame(color_frame)
-        return intensity_frame
-
-    def render(self):
-        render_pkg = render1(self.viewpoint, self.gaussians, self.background)
-        return render_pkg
+        self._ensure_rendering()
+        return self.get_intensity_frame(self.rendering["render"])
+    
+    @property
+    def depth_frame(self):
+        self._ensure_rendering()
+        return self.rendering["depth"]
 
     def get_intensity_frame(self, color_frame):
         weights = torch.tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
@@ -51,8 +57,8 @@ class RenderFrame:
         sobel_x = F.conv2d(self.intensity_frame, sobel_x_kernel, padding=1)
         sobel_y = F.conv2d(self.intensity_frame, sobel_y_kernel, padding=1)
         self.grad_frame = torch.sqrt(sobel_x**2 + sobel_y**2)
-
-    def get_delta_Ir(self, pyramid_level=0):
+    
+    def get_delta_Ir(self, pyramid_level):
         assert self.viewpoint.delta_tau != 0, f"delta_tau should not be zero, \
         it should be same as the time interval of event frame"
         scale_factor = 0.5 ** pyramid_level

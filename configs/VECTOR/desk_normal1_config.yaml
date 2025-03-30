@@ -1,5 +1,6 @@
 Event:
   data_path: ./data/VECTOR/desk_normal1/events.txt
+  camera_model: pinehole
   distortion_factors:
   - -0.031982
   - 0.041966

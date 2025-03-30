@@ -6,14 +6,13 @@ import torch
 import signal
 import logging
 import numpy as np
-from typing import List
 import torch.nn.functional as F
 from scipy.spatial.transform import Rotation as R
 
 from utils.auxiliary import Logger
 from utils.render_camera.camera import Camera
 from utils.render_camera.frame import RenderFrame
-from utils.event_camera.event import EventFrame, EventArray
+from utils.event_camera.event import EventFrame
 from gaussian_splatting.scene.gaussian_model import GaussianModel
 from utils.visualizer import get_delta_Ie_img, get_delta_Ir_img, overlay_two_imgs, save_video, save_gif
 
@@ -33,7 +32,7 @@ signal.signal(signal.SIGTERM, handle_stop_signal)  # kill sends SIGTERM
 class Tracker:
     def __init__(self,
                  config,
-                 event_arrays: List[EventArray],
+                 event_data,
                  viewpoint: Camera,
                  gaussians: GaussianModel,
                  pipeline,
@@ -41,7 +40,7 @@ class Tracker:
                  device):
         self.device = device
         self.config = config
-        self.event_arrays = event_arrays
+        self.event_data = event_data
         self.viewpoint = viewpoint
         self.gaussians = gaussians
         self.pipeline = pipeline
@@ -54,6 +53,8 @@ class Tracker:
         self.converged_threshold = config["Optimizer"]["converged_threshold"]
         self.max_optim_iter = config["Optimizer"]["max_optim_iter"]
         self.save_path = config["Tracking"]["save_path"]
+        self.max_events_per_frame = config["Event"]["max_events_per_frame"]
+        self.camera_model = config["Event"]["camera_model"]
 
         self.pyramid_lvl = 3
         self.angular_vel_window = []
@@ -84,7 +85,13 @@ class Tracker:
 
         for level in range(self.pyramid_lvl):
             scale_factor = 0.5 ** level
-            resized_img = cv2.resize(image, (int(w * scale_factor), int(h * scale_factor)),
+            if dtype == torch.bool:
+                image = image.astype(np.uint8)
+                resized_img = cv2.resize(image, (int(w * scale_factor), int(h * scale_factor)),
+                                     interpolation=cv2.INTER_NEAREST)
+                resized_img = resized_img.astype(np.bool)
+            else:
+                resized_img = cv2.resize(image, (int(w * scale_factor), int(h * scale_factor)),
                                      interpolation=cv2.INTER_NEAREST)
             tensor_resized_img = torch.from_numpy(np.expand_dims(resized_img, axis=0)).to(device=device, dtype=dtype)
             pyramid.append(tensor_resized_img)
@@ -110,10 +117,11 @@ class Tracker:
         frame_idx = 0
         last_delta_tau = 0
         fraction_num = self.max_optim_iter / 2
-        total_frame_nums = len(self.event_arrays)
+        total_event_num = len(self.event_data)
+        processed_event_num = 0
         global stop_signal_received
         total_opt_start_time = time.time()
-        while not stop_signal_received and frame_idx < total_frame_nums:
+        while not stop_signal_received and processed_event_num < total_event_num - 1:
             opt_params = []
             opt_params.append({"params": [self.viewpoint.cam_rot_delta],
                                "lr": self.config["Optimizer"]["cam_rot_delta"]})
@@ -128,9 +136,24 @@ class Tracker:
                                "lr": self.config["Optimizer"]["cam_v_delta"]})
             optimizer = torch.optim.Adam(opt_params)
 
-            delta_tau = self.event_arrays[frame_idx].duration()
+            current_events = self.event_data[processed_event_num:processed_event_num+self.max_events_per_frame]
+            eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic, self.distortion_factors,
+                                self.camera_model, self.gaussian_kernel_size, current_events)
+            sign_delta_Ie, unsign_delta_Ie = eFrame.integrate_events()
+            sign_delta_Ie_pyramid = self.image_pyramid(sign_delta_Ie)
+            unsign_delta_Ie_pyramid = self.image_pyramid(unsign_delta_Ie)
+
+            # rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
+            # depth_mask = rFrame.depth_frame < 2
+            # depth_mask_pyramid = self.image_pyramid(depth_mask)
+
+            delta_tau = eFrame.duration()
             self.viewpoint.delta_tau = delta_tau
             self.viewpoint.const_vel_model((delta_tau + last_delta_tau) / 2)
+
+            self.log.info(f"progress: \t{processed_event_num/total_event_num*100:.2f}%")
+            self.log.info(f"frame_idx:\t{frame_idx}")
+            self.log.info(f"delta_tau:\t{delta_tau:.4f}")
 
             # before optimizing, backup the initial status
             curr_initial_status = copy.deepcopy([self.viewpoint.T.detach(),
@@ -138,18 +161,10 @@ class Tracker:
                                                  self.viewpoint.angular_vel.detach(),
                                                  self.viewpoint.linear_vel.detach()])
 
-            self.log.info(f"frame_idx:\t{frame_idx} / {total_frame_nums}")
-            self.log.info(f"delta_tau:\t{delta_tau:.4f}")
-
-            eFrame = EventFrame(self.img_width, self.img_height, self.intrinsic, self.distortion_factors,
-                                self.gaussian_kernel_size, self.event_arrays[frame_idx])
-            sign_delta_Ie_pyramid = self.image_pyramid(eFrame.sign_delta_Ie)
-            unsign_delta_Ie_pyramid = self.image_pyramid(eFrame.unsign_delta_Ie)
-
             for lvl in range(self.pyramid_lvl - 1, -1, -1):
                 sign_delta_Ie = sign_delta_Ie_pyramid[lvl]
                 unsign_delta_Ie = unsign_delta_Ie_pyramid[lvl]
-                # mask = compute_mask(unsign_delta_Ie, lvl)
+                # depth_mask = depth_mask_pyramid[lvl]
 
                 # jump unsigned pose optimization in lower level for saving time
                 if lvl == self.pyramid_lvl - 1:
@@ -201,9 +216,8 @@ class Tracker:
                             if param is self.viewpoint.cam_v_delta:
                                 param_group["lr"] = self.config["Optimizer"]["cam_v_delta"] * (1 - fraction)
 
-                    rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background, lvl)
-                    sign_delta_Ir = rFrame.sign_delta_Ir
-                    unsign_delta_Ir = rFrame.unsign_delta_Ir
+                    rFrame = RenderFrame(self.viewpoint, self.gaussians, self.pipeline, self.background)
+                    sign_delta_Ir, unsign_delta_Ir = rFrame.get_delta_Ir(lvl)
 
                     if not opt_vel:
                         loss = self.tracking_loss(unsign_delta_Ir, unsign_delta_Ie, huber=False)
@@ -255,7 +269,7 @@ class Tracker:
             self.log.info("="*20)
 
             # find the timestamp of the event frame by taking average of start and end time
-            timestamp = self.event_arrays[frame_idx].time()
+            timestamp = eFrame.time()
             translation = self.viewpoint.T.detach().cpu().numpy()
             rotation_matrix = self.viewpoint.R.detach().cpu().numpy()
             rotation = R.from_matrix(rotation_matrix)
@@ -264,14 +278,13 @@ class Tracker:
             tum_file.write(f"{timestamp} {translation[0]} {translation[1]} {translation[2]} "
                            f"{quaternion[0]} {quaternion[1]} {quaternion[2]} {quaternion[3]}\n")
 
-            sign_delta_Ie_img = get_delta_Ie_img(eFrame.sign_delta_Ie)
-            sign_delta_Ir_img = get_delta_Ir_img(rFrame.sign_delta_Ir)
+            sign_delta_Ie_img = get_delta_Ie_img(sign_delta_Ie)
+            sign_delta_Ir_img = get_delta_Ir_img(sign_delta_Ir)
             img = overlay_two_imgs(sign_delta_Ir_img, sign_delta_Ie_img)
             cv2.imwrite(os.path.join(f"{self.save_path}/tracking_frames", f'frame_{frame_idx}.png'), img)
 
             frame_idx += 1
-            if frame_idx >= total_frame_nums:
-                break
+            processed_event_num += self.max_events_per_frame
         tum_file.close()
 
         total_opt_end_time = time.time()
